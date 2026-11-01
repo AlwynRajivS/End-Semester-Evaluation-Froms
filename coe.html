@@ -148,6 +148,7 @@ table.t td.n,table.t th.n{text-align:right;font-variant-numeric:tabular-nums}
 table.t td.c,table.t th.c{text-align:center}
 table.t input.cell{width:100%;min-width:72px;padding:5px 7px;font:inherit;font-size:12.5px;color:var(--txt);
   background:var(--inp);border:1.4px solid var(--line);border-radius:6px;outline:none}
+table.t input.cell.foil{min-width:112px;text-transform:uppercase}
 table.t input.cell:focus{border-color:var(--a1);box-shadow:0 0 0 2px rgba(91,140,255,.16)}
 table.t input.cell.bad{border-color:var(--err);background:rgba(248,113,113,.08)}
 table.t input.cell.good{border-color:var(--ok)}
@@ -221,6 +222,9 @@ table.t input.cell.good{border-color:var(--ok)}
 .srch{position:relative}
 .srch input{padding-left:31px}
 .srch::before{content:"\1F50D";position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;opacity:.5}
+.logoBox{display:flex;align-items:center;justify-content:center;min-width:120px;min-height:64px;padding:6px 12px;
+  border:1.5px dashed var(--line2);border-radius:var(--r);background:#fff;color:#8294b3;font-size:11.5px}
+.logoBox img{max-height:56px;max-width:180px;display:block}
 </style>
 </head>
 <body>
@@ -247,7 +251,10 @@ table.t input.cell.good{border-color:var(--ok)}
   <h6>Valuation</h6>
   <div class="nv" data-v="generate"><span class="e">&#9881;</span>Generate Bundles<span class="cnt" id="cBundle">0</span></div>
   <div class="nv" data-v="allot"><span class="e">&#128203;</span>Allotment Status</div>
+  <h6>After evaluation</h6>
+  <div class="nv" data-v="reval"><span class="e">&#128260;</span>Revaluation</div>
   <h6>Output</h6>
+  <div class="nv" data-v="claims"><span class="e">&#128176;</span>Claims &amp; Analysis</div>
   <div class="nv" data-v="reports"><span class="e">&#128196;</span>Reports</div>
   <h6>Administration</h6>
   <div class="nv" data-v="settings"><span class="e">&#9874;</span>Settings</div>
@@ -278,6 +285,8 @@ table.t input.cell.good{border-color:var(--ok)}
         <button class="btn g sm" data-go="during">&#9999; Dummy entry</button>
         <button class="btn g sm" data-go="examiners">&#128101; Examiners</button>
         <button class="btn g sm" data-go="generate">&#9881; Generate bundles</button>
+        <button class="btn g sm" data-go="reval">&#128260; Revaluation</button>
+        <button class="btn g sm" data-go="claims">&#128176; Claims</button>
         <button class="btn g sm" data-go="reports">&#128196; Reports</button>
       </div>
       <div style="margin-top:16px" id="cfgPeek"></div>
@@ -343,8 +352,8 @@ table.t input.cell.good{border-color:var(--ok)}
 <!-- ========================= DURING EXAM ========================= -->
 <section class="view" id="v-during">
   <div class="head"><div><h2>During Exam &mdash; foilcard &amp; dummy entry</h2>
-    <p>Pick a date and session, then key in QP code, foilcard range, dummy range and absentees.
-       The tally turns green only when the dummy count matches the present count.</p></div></div>
+    <p>Pick a date and session, then key in QP code, foilcard range (alphanumeric, e.g. TAPR-260619 to TAPR-260625),
+       dummy range and absentees. The tally turns green only when the dummy count matches the present count.</p></div></div>
 
   <div class="card">
     <div class="fr">
@@ -363,8 +372,8 @@ table.t input.cell.good{border-color:var(--ok)}
 
   <div class="card">
     <h3>&#9999; Entry grid</h3>
-    <div class="cd">Total Foilcard and Total Dummy are computed as you type. Present = Total students &minus; Absentees.
-      Duplicate dummy ranges are rejected on save.</div>
+    <div class="cd">Total Foilcard and Total Dummy are computed as you type (foilcard count uses the numeric tail, the alpha prefix must match).
+      Present = Total students &minus; Absentees. Duplicate dummy ranges are rejected on save.</div>
     <div class="tw"><table class="t" id="duTable"><tbody><tr><td class="empty">
       <span class="e">&#128197;</span>Choose a date and session, then press <b>Load courses</b>.</td></tr></tbody></table></div>
   </div>
@@ -408,8 +417,9 @@ table.t input.cell.good{border-color:var(--ok)}
 <!-- ========================= GENERATE ========================= -->
 <section class="view" id="v-generate">
   <div class="head"><div><h2>Generate valuation bundles</h2>
-    <p>Splits every course into bundles of the configured size, assigns a foilcard to each bundle and
-       works out the dummy range it carries &mdash; then verifies the last bundle against the dummy number you entered.</p></div></div>
+    <p>Splits every course into bundles of the configured size, assigns a foilcard to each bundle, issues a
+       Board Bundle No. (CSE-001, ECE-001 &hellip;) and works out the dummy range it carries &mdash; then verifies the
+       last bundle against the dummy number you entered.</p></div></div>
 
   <div class="card">
     <h3>&#9989; Pre-flight check</h3>
@@ -422,6 +432,15 @@ table.t input.cell.good{border-color:var(--ok)}
           Ticking this sets <code>EXAM_OVER = YES</code> in the backend.</span>
       </label>
     </div>
+
+    <div class="fr" style="margin-bottom:12px">
+      <div><label class="lb">Generate from date</label><input class="inp" type="date" id="genFrom"></div>
+      <div><label class="lb">To date</label><input class="inp" type="date" id="genTo"></div>
+      <div style="flex:0 0 auto"><button class="btn g sm" id="genAllDates">All dates</button></div>
+      <div style="flex:2 1 240px"><small style="color:var(--dim);line-height:1.5">Pick a start and end date to generate only that range
+        (use the same date in both for a single day). Leave both blank for every date. Bundles on other dates are left untouched.</small></div>
+    </div>
+
     <div class="btns">
       <button class="btn wn" id="genBtn" disabled>&#9881; Generate bundle data</button>
       <button class="btn g" id="genRecheck">&#8635; Re-run verification</button>
@@ -432,7 +451,7 @@ table.t input.cell.good{border-color:var(--ok)}
   <div class="card">
     <h3>&#128230; Generated bundle data <span class="pill dim" id="bdCount">0</span></h3>
     <div class="fr" style="margin-bottom:12px">
-      <div class="srch"><input class="inp" id="bdSearch" placeholder="Search course or bundle"></div>
+      <div class="srch"><input class="inp" id="bdSearch" placeholder="Search course, bundle, foilcard"></div>
       <div style="flex:0 1 180px"><select class="inp" id="bdBoard"><option value="">All boards</option></select></div>
       <div style="flex:0 0 auto"><button class="btn g sm" onclick="exportSheet('data')">&#128229; Export</button></div>
     </div>
@@ -456,6 +475,43 @@ table.t input.cell.good{border-color:var(--ok)}
   </div>
 </section>
 
+<!-- ========================= REVALUATION ========================= -->
+<section class="view" id="v-reval">
+  <div class="head"><div><h2>Revaluation &mdash; dummy number locator</h2>
+    <p>After evaluation, type or upload the dummy numbers of the scripts applied for revaluation. Each one is traced to its
+       Board Bundle No., Foilcard No., Course Code and Course Name, and a ready-to-print report can be downloaded.</p></div></div>
+
+  <div class="card">
+    <h3>&#128260; Dummy numbers</h3>
+    <div class="cd">Type them (one per line or comma separated) or upload the Excel / CSV sheet. The column must be named
+      <b>Dummy Number</b>.</div>
+    <div class="btns" style="margin-bottom:12px">
+      <button class="btn g sm" id="rvTplX">&#11015; Excel template</button>
+      <button class="btn g sm" id="rvTplC">&#11015; CSV template</button>
+      <button class="btn g sm" id="rvClear">&#10006; Clear</button>
+    </div>
+    <div class="grid g2">
+      <div><label class="lb">Type dummy numbers</label>
+        <textarea class="inp" id="rvText" rows="6" placeholder="1005&#10;1042&#10;1190"></textarea></div>
+      <div class="drop" id="dropRv"><span class="e">&#128228;</span><b>Upload dummy number sheet</b>
+        <small>.xlsx / .xls / .csv &mdash; column &ldquo;Dummy Number&rdquo;</small>
+        <input type="file" id="fileRv" accept=".xlsx,.xls,.csv" hidden></div>
+    </div>
+    <div id="rvFileMsg" style="margin-top:10px"></div>
+    <div class="btns" style="margin-top:6px">
+      <button class="btn" id="rvGo">&#128269; Look up</button>
+      <button class="btn g" id="rvX">&#128202; Excel</button>
+      <button class="btn g" id="rvP">&#128196; PDF</button>
+      <button class="btn g" id="rvW">&#128462; Word</button>
+    </div>
+    <div class="note i" style="margin-top:12px;margin-bottom:0">The report picks up the logo loaded in the Reports page.</div>
+  </div>
+
+  <div class="card"><h3>Result <span class="pill dim" id="rvCount">0</span></h3>
+    <div id="rvSummary"></div>
+    <div class="tw"><table class="t" id="rvTable"></table></div></div>
+</section>
+
 <!-- ========================= REPORTS ========================= -->
 <section class="view" id="v-reports">
   <div class="head"><div><h2>Reports</h2>
@@ -473,7 +529,75 @@ table.t input.cell.good{border-color:var(--ok)}
     <div id="rpStatus" style="margin-top:12px"></div>
   </div>
 
+  <div class="card">
+    <h3>&#127942; Report logo</h3>
+    <div class="cd">Upload the logo <b>before</b> downloading. It is placed at the top of every page of every report
+      (PDF, Word and Excel) in place of the college name. PNG or JPG; a transparent PNG looks best. The logo is remembered in this browser.</div>
+    <div class="fr">
+      <div style="flex:1 1 220px"><input class="inp" type="file" id="logoFile" accept="image/png,image/jpeg"></div>
+      <div style="flex:0 0 auto"><div class="logoBox" id="logoBox">No logo</div></div>
+      <div style="flex:0 0 auto"><button class="btn g sm" id="logoClear">Remove logo</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>&#128236; Central Valuation Circular &mdash; stage</h3>
+    <div class="cd"><b>Stage 1 &ndash; before allotment:</b> courses and script counts come from the Data sheet, the external examiners come from the
+      External Examiner list of that board, and the number of internal examiners is entered by hand below.
+      <b>Stage 2 &ndash; after the HoD has allotted faculty:</b> choose stage 2 and generate again; the circular then lists the examiners actually allotted, internal and external.</div>
+    <div class="fr">
+      <div style="flex:0 1 260px"><label class="lb">Circular stage</label>
+        <select class="inp" id="rpStage"><option value="PRE">1 &ndash; Before allotment (manual internal count)</option><option value="POST">2 &ndash; After allotment (from HoD allotment)</option></select></div>
+    </div>
+    <div id="intWrap" style="margin-top:12px"><div class="fr" id="intGrid"></div></div>
+  </div>
+
   <div class="grid g3" id="repGrid"></div>
+</section>
+
+<!-- ========================= CLAIMS & ANALYSIS ========================= -->
+<section class="view" id="v-claims">
+  <div class="head"><div><h2>Claims &amp; analysis</h2>
+    <p>Valuation, DA, TA and sitting-fee claims of the allotted examiners &mdash; internal, external and combined &mdash; with board-wise and
+       college-wise analysis. Rates come from Settings and the college-wise TA chart.</p></div>
+    <button class="btn g sm" id="clRefresh">&#8635; Refresh</button></div>
+
+  <div class="card">
+    <div class="fr">
+      <div style="flex:0 1 220px"><label class="lb">Board</label><select class="inp" id="clBoard"><option value="ALL">All boards</option></select></div>
+      <div style="flex:2 1 300px"><small style="color:var(--dim);line-height:1.5">The board filter applies to the figures below and to the claim statements. Page size and date are taken from the Reports page.</small></div>
+    </div>
+    <div class="grid g4" style="margin-top:14px">
+      <div class="rep"><div class="ic">&#128100;</div><h4>Internal claim statement</h4><p>Every internal examiner with valuation, DA, TA, sitting fee, TDS and net payable.</p>
+        <div class="fm"><button class="fmt" onclick="claimOut('INT','excel')">&#128202; Excel</button><button class="fmt" onclick="claimOut('INT','pdf')">&#128196; PDF</button><button class="fmt" onclick="claimOut('INT','word')">&#128462; Word</button></div></div>
+      <div class="rep"><div class="ic">&#127891;</div><h4>External claim statement</h4><p>External examiners with college-wise TA from the TA chart.</p>
+        <div class="fm"><button class="fmt" onclick="claimOut('EXT','excel')">&#128202; Excel</button><button class="fmt" onclick="claimOut('EXT','pdf')">&#128196; PDF</button><button class="fmt" onclick="claimOut('EXT','word')">&#128462; Word</button></div></div>
+      <div class="rep"><div class="ic">&#129534;</div><h4>Combined claim statement</h4><p>Internal and external separately with sub-totals, and a consolidated grand total.</p>
+        <div class="fm"><button class="fmt" onclick="claimOut('ALL','excel')">&#128202; Excel</button><button class="fmt" onclick="claimOut('ALL','pdf')">&#128196; PDF</button><button class="fmt" onclick="claimOut('ALL','word')">&#128462; Word</button></div></div>
+      <div class="rep"><div class="ic">&#128202;</div><h4>Board-wise summary</h4><p>Scripts, unallotted bundles, examiners and claim amount for every board.</p>
+        <div class="fm"><button class="fmt" onclick="claimOut('BOARD','excel')">&#128202; Excel</button><button class="fmt" onclick="claimOut('BOARD','pdf')">&#128196; PDF</button><button class="fmt" onclick="claimOut('BOARD','word')">&#128462; Word</button></div></div>
+    </div>
+  </div>
+
+  <div id="clMsg"></div>
+  <div class="grid g4" id="clStats"></div>
+
+  <div class="card" style="margin-top:16px"><h3>&#129534; Claim summary</h3>
+    <div class="cd">Internal, external and combined totals (rupees).</div>
+    <div class="tw"><table class="t" id="clSummary"></table></div></div>
+
+  <div class="card"><h3>&#128202; Board-wise analysis</h3>
+    <div class="tw"><table class="t" id="clBoardTbl"></table></div></div>
+
+  <div class="card"><h3>&#127979; College-wise TA (external examiners)</h3>
+    <div class="cd">Which college each external examiner comes from, and the TA applied from the TA chart.</div>
+    <div class="tw"><table class="t" id="clCollege"></table></div></div>
+
+  <div class="card"><h3>&#128101; Examiner-wise claim</h3>
+    <div class="fr" style="margin-bottom:12px">
+      <div style="flex:0 1 220px"><select class="inp" id="clType"><option value="ALL">Internal + External</option><option value="INT">Internal only</option><option value="EXT">External only</option></select></div>
+    </div>
+    <div class="tw"><table class="t" id="clExam"></table></div></div>
 </section>
 
 <!-- ========================= SETTINGS ========================= -->
@@ -482,8 +606,32 @@ table.t input.cell.good{border-color:var(--ok)}
   <div class="card">
     <h3>&#9874; Portal configuration</h3>
     <div class="cd">These are stored in the Config sheet and appear on every generated document.</div>
+    <div id="splitWarn"></div>
     <div class="grid g2" id="cfgForm"></div>
     <div class="btns" style="margin-top:16px"><button class="btn" id="cfgSave">&#128190; Save configuration</button></div>
+  </div>
+
+  <div class="card">
+    <h3>&#128663; TA chart &mdash; college-wise travelling allowance <span class="pill dim" id="taCount">0</span></h3>
+    <div class="cd">TA varies with the examiner&rsquo;s college. Each external examiner&rsquo;s college is matched here (College Code first, then College Name, then City)
+      and the amount is used in the Issue Register and every claim statement. A college that is not listed uses the default TA above.
+      The amount is paid per day or per visit, as set in &ldquo;TA is paid&rdquo;.</div>
+    <div class="btns" style="margin-bottom:12px">
+      <button class="btn g sm" id="taTplX">&#11015; Excel template</button>
+      <button class="btn g sm" id="taTplC">&#11015; CSV template</button>
+      <button class="btn g sm" id="taExport">&#128229; Export chart</button>
+      <button class="btn g sm" id="taAdd">&#10133; Add one manually</button>
+      <button class="btn g sm" id="taSync">&#128260; Add colleges of external examiners</button>
+    </div>
+    <div class="drop" id="dropTa"><span class="e">&#128228;</span><b>Click or drop the TA chart here</b>
+      <small>.xlsx / .xls / .csv &mdash; columns: College Code, College Name, College City, Distance (KM), TA Amount, Remarks</small>
+      <input type="file" id="fileTa" accept=".xlsx,.xls,.csv" hidden></div>
+    <div id="taUpMsg"></div>
+    <div class="fr" style="margin:12px 0">
+      <div class="srch"><input class="inp" id="taSearch" placeholder="Search college, city"></div>
+      <div style="flex:0 0 auto"><button class="btn dg sm" id="taDel">&#128465; Delete selected</button></div>
+    </div>
+    <div class="tw"><table class="t" id="taTable"></table></div>
   </div>
 </section>
 
@@ -513,10 +661,10 @@ table.t input.cell.good{border-color:var(--ok)}
 /* ===================================================================================
  *  BACKEND URL — paste your Apps Script /exec link here (or configure it on index.html)
  * =================================================================================== */
-var API_URL = "https://script.google.com/macros/s/AKfycbzDWfyz729dWq-_odS9l_sc3ORUtFodSpEG0xuCi-Z3jL-Wlq6Se5bbtjzdJelZG1rZ4w/exec";
+var API_URL = "https://script.google.com/macros/s/AKfycbwoAMI1ZLthpnP2la4AWLgP5jGdyFBjneFfVUsnFaaTqHnU9enUHZiESdGWzBoNqBm60w/exec";
 
 /* =============================== CORE =============================== */
-var LS={url:'ep_api_url',theme:'ep_theme',tok:'ep_token',user:'ep_user',cfg:'ep_config'};
+var LS={url:'ep_api_url',theme:'ep_theme',tok:'ep_token',user:'ep_user',cfg:'ep_config',logo:'ep_logo'};
 function apiUrl(){ return (localStorage.getItem(LS.url)||API_URL||'').trim(); }
 var TOKEN = sessionStorage.getItem(LS.tok) || localStorage.getItem(LS.tok) || '';
 var USER  = JSON.parse(sessionStorage.getItem(LS.user) || localStorage.getItem(LS.user) || 'null');
@@ -597,6 +745,13 @@ function toISO(v){
 }
 function n(v){ var x=parseInt(String(v===undefined?'':v).replace(/[^0-9-]/g,''),10); return isNaN(x)?0:x; }
 
+/* ---- alphanumeric foilcard helpers : "TAPR-260619" -> prefix "TAPR-", number 260619, width 6 ---- */
+function pf(v){ var m=String(v||'').trim().toUpperCase().replace(/\s+/g,'').match(/^(.*?)(\d+)$/);
+  return m?{p:m[1],n:parseInt(m[2],10),w:m[2].length}:null; }
+function foilCount(a,b){ var x=pf(a),y=pf(b); return (x&&y&&x.p===y.p&&y.n>=x.n)?(y.n-x.n+1):0; }
+function padN(v,w){ var s=String(v); while(s.length<w) s='0'+s; return s; }
+function bb(r){ return r['Board Bundle No.']||r['Bundle No.']||''; }   /* Board Bundle No. with fallback */
+
 /* =============================== THEME / NAV =============================== */
 (function(){ var t=localStorage.getItem(LS.theme)||'dark';
   document.documentElement.setAttribute('data-theme',t);
@@ -623,13 +778,14 @@ function go(v){
   if(v==='allot') loadAllot();
   if(v==='audit') loadAudit();
   if(v==='users') loadUsers();
+  if(v==='claims') loadClaims();
   if(v==='reports' && !REPORT) loadReportData();
 }
 document.querySelectorAll('.nv').forEach(function(el){ el.onclick=function(){ go(el.dataset.v); }; });
 document.querySelectorAll('[data-go]').forEach(function(el){ el.onclick=function(){ go(el.dataset.go); }; });
 
 /* =============================== BOOT =============================== */
-var BEFORE=[], DURING=[], DATA=[], EXAM={INTERNAL:[],EXTERNAL:[]}, EXTYPE='INTERNAL';
+var BEFORE=[], DURING=[], DATA=[], EXAM={INTERNAL:[],EXTERNAL:[]}, EXTYPE='INTERNAL', TA=[];
 
 function boot(){
   document.getElementById('uname').textContent=USER.name||'';
@@ -647,11 +803,11 @@ function boot(){
     return Promise.all([ api({action:'beforeList'}), api({action:'duringAll'}),
                          api({action:'dataList',board:'ALL'}),
                          api({action:'examinerList',type:'INTERNAL'}),
-                         api({action:'examinerList',type:'EXTERNAL'}) ]);
+                         api({action:'examinerList',type:'EXTERNAL'}), api({action:'taList'}) ]);
   }).then(function(res){
     BEFORE=(res[0]&&res[0].rows)||[]; DURING=(res[1]&&res[1].rows)||[];
     DATA=(res[2]&&res[2].rows)||[];
-    EXAM.INTERNAL=(res[3]&&res[3].rows)||[]; EXAM.EXTERNAL=(res[4]&&res[4].rows)||[];
+    EXAM.INTERNAL=(res[3]&&res[3].rows)||[]; EXAM.EXTERNAL=(res[4]&&res[4].rows)||[]; TA=(res[5]&&res[5].rows)||[];
     afterLoad();
     loadProgress();
   }).catch(function(e){ toast(e.message,'err','Load failed'); });
@@ -662,7 +818,7 @@ function afterLoad(){
   document.getElementById('cDuring').textContent=DURING.length;
   document.getElementById('cExam').textContent=EXAM.INTERNAL.length+EXAM.EXTERNAL.length;
   document.getElementById('cBundle').textContent=DATA.length;
-  fillBoards(); fillDates(); renderBefore(); renderBundles(); renderExaminers();
+  fillBoards(); fillDates(); renderBefore(); renderBundles(); renderExaminers(); renderTA();
 }
 
 function fillBoards(){
@@ -670,13 +826,17 @@ function fillBoards(){
   (BOARDS||[]).forEach(function(b){ set[b]=1; });
   EXAM.EXTERNAL.forEach(function(r){ if(r['Board']) set[r['Board']]=1; });
   BOARDS=Object.keys(set).sort();
-  ['bdBoard','rpBoard'].forEach(function(id){
+  ['bdBoard','rpBoard','clBoard'].forEach(function(id){
     var el=document.getElementById(id); if(!el) return;
-    var cur=el.value;
-    el.innerHTML=(id==='rpBoard'?'<option value="ALL">All boards</option>':'<option value="">All boards</option>')+
+    var sig=BOARDS.join('|');
+    if(el.dataset.sig===sig) return;                       // list unchanged: leave the dropdown alone
+    var cur=el.value, all=(id==='bdBoard')?'':'ALL';
+    el.innerHTML='<option value="'+all+'">All boards</option>'+
       BOARDS.map(function(b){ return '<option>'+esc(b)+'</option>'; }).join('');
-    el.value=cur||el.options[0].value;
+    el.dataset.sig=sig;
+    el.value=(cur&&BOARDS.indexOf(cur)>-1)?cur:all;
   });
+  buildIntGrid();
   document.getElementById('boardList').innerHTML=BOARDS.map(function(b){ return '<option value="'+esc(b)+'">'; }).join('');
 }
 function fillDates(){
@@ -708,7 +868,7 @@ function renderStats(s){
 function renderConfigPeek(){
   var keys=['EXAM_TITLE','BUNDLE_SIZE','EXAM_OVER','CIRCULAR_REF'];
   document.getElementById('cfgPeek').innerHTML=keys.map(function(k){
-    return '<div class="kv"><b>'+k.replace(/_/g,' ')+'</b><span>'+esc(CFG[k]||'&mdash;')+'</span></div>'; }).join('');
+    return '<div class="kv"><b>'+k.replace(/_/g,' ')+'</b><span>'+esc(CFG[k]||'—')+'</span></div>'; }).join('');
 }
 function loadProgress(){
   api({action:'duringProgress'}).then(function(r){
@@ -860,6 +1020,13 @@ function csvDownload(name,rows){
   var blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
   saveAs(blob,name);
 }
+function xlsxDownload(name,rows,widths){
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  if(widths) ws['!cols']=widths.map(function(w){ return {wch:w}; });
+  var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Sheet1');
+  var out=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  saveAs(new Blob([out],{type:'application/octet-stream'}),name);
+}
 function dlTemplate(kind){
   if(kind==='before'){
     csvDownload('Template_BeforeExam.csv',[BF_COLS,
@@ -879,7 +1046,7 @@ function dlTemplate(kind){
 function exportSheet(which){
   var rows,name;
   if(which==='before'){ name='BeforeExam.csv'; rows=[BF_COLS].concat(BEFORE.map(function(r){ return BF_COLS.map(function(c){ return r[c]; }); })); }
-  else if(which==='data'){ var C=['S.No.','Course Code','Course Name','Board','Sem','Date','Session','Bundle No.','Foilcard No.','Dummy No. From','Dummy No. To','No. of Papers','Alloted Faculty ID','Faculty Name','Faculty Type'];
+  else if(which==='data'){ var C=['S.No.','Course Code','Course Name','Board','Sem','Date','Session','Bundle No.','Board Bundle No.','Foilcard No.','Dummy No. From','Dummy No. To','No. of Papers','Alloted Faculty ID','Faculty Name','Faculty Type'];
     name='BundleData.csv'; rows=[C].concat(DATA.map(function(r){ return C.map(function(c){ return r[c]; }); })); }
   else { var list=EXAM[which]; var C2=Object.keys(list[0]||{}).filter(function(k){ return k!=='_row'; });
     name=which+'_Examiners.csv'; rows=[C2].concat(list.map(function(r){ return C2.map(function(c){ return r[c]; }); })); }
@@ -906,7 +1073,7 @@ function renderDuring(){
   var h='<thead><tr>'+
     '<th class="c">#</th><th>Sem</th><th>Course</th><th>Board</th><th>Dept.</th>'+
     '<th class="n">Total</th><th>QP Code</th>'+
-    '<th class="n">Foil From</th><th class="n">Foil To</th><th class="n">Tot. Foil</th>'+
+    '<th>Foil From</th><th>Foil To</th><th class="n">Tot. Foil</th>'+
     '<th class="n">Dummy From</th><th class="n">Dummy To</th><th class="n">Tot. Dummy</th>'+
     '<th class="n">Absent</th><th class="n">Present</th><th class="c">Tally</th></tr></thead><tbody>';
   DU_ROWS.forEach(function(r,i){
@@ -917,8 +1084,8 @@ function renderDuring(){
       '<td style="max-width:150px;font-size:11.5px;color:var(--dim)">'+esc(r.departments)+'</td>'+
       '<td class="n"><b>'+r.total+'</b></td>'+
       '<td><input class="cell" data-f="qp" value="'+esc(r.qp)+'" placeholder="QP"></td>'+
-      '<td><input class="cell" data-f="foilFrom" type="number" value="'+esc(r.foilFrom)+'"></td>'+
-      '<td><input class="cell" data-f="foilTo" type="number" value="'+esc(r.foilTo)+'"></td>'+
+      '<td><input class="cell foil" data-f="foilFrom" value="'+esc(r.foilFrom)+'" placeholder="TAPR-260619"></td>'+
+      '<td><input class="cell foil" data-f="foilTo" value="'+esc(r.foilTo)+'" placeholder="TAPR-260625"></td>'+
       '<td class="n" data-o="totFoil">&mdash;</td>'+
       '<td><input class="cell" data-f="dummyFrom" type="number" value="'+esc(r.dummyFrom)+'"></td>'+
       '<td><input class="cell" data-f="dummyTo" type="number" value="'+esc(r.dummyTo)+'"></td>'+
@@ -936,12 +1103,13 @@ function renderDuring(){
 }
 function calcRow(tr){
   var i=n(tr.dataset.i), r=DU_ROWS[i];
-  var tf=(n(r.foilFrom)&&n(r.foilTo))?(n(r.foilTo)-n(r.foilFrom)+1):0;
+  var tf=foilCount(r.foilFrom,r.foilTo);
+  var hasFoil=String(r.foilFrom||'').trim()||String(r.foilTo||'').trim();
   var td=(n(r.dummyFrom)&&n(r.dummyTo))?(n(r.dummyTo)-n(r.dummyFrom)+1):0;
   var hasAbs=String(r.absent).trim()!=='';
   var pres=hasAbs?(r.total-n(r.absent)):'';
   r.present=pres;
-  tr.querySelector('[data-o="totFoil"]').innerHTML=tf>0?'<b>'+tf+'</b>':(n(r.foilFrom)||n(r.foilTo)?'<span class="pill err">bad</span>':'&mdash;');
+  tr.querySelector('[data-o="totFoil"]').innerHTML=tf>0?'<b>'+tf+'</b>':(hasFoil?'<span class="pill err">bad</span>':'&mdash;');
   tr.querySelector('[data-o="totDummy"]').innerHTML=td>0?'<b>'+td+'</b>':(n(r.dummyFrom)||n(r.dummyTo)?'<span class="pill err">bad</span>':'&mdash;');
   tr.querySelector('[data-o="present"]').innerHTML=hasAbs?'<b>'+pres+'</b>':'&mdash;';
   var cell=tr.querySelector('[data-o="tally"]'), dIn=tr.querySelector('[data-f="dummyTo"]');
@@ -967,14 +1135,17 @@ document.getElementById('duAuto').onclick=function(){
   if(!DU_ROWS.length){ toast('Load a session first.','warn'); return; }
   var start=prompt('Start the dummy chain from which number?','1001');
   if(start===null) return;
-  var cur=n(start), fstart=prompt('Start foilcard numbering from?','1');
+  var cur=n(start);
+  var fstart=prompt('Start foilcard numbering from? (e.g. TAPR-260619)','TAPR-260619');
   if(fstart===null) return;
-  var fcur=n(fstart), size=n(CFG.BUNDLE_SIZE||30)||30;
+  var fs=pf(fstart); if(!fs){ toast('Foilcard must end with digits, e.g. TAPR-260619.','err'); return; }
+  var fcur=fs.n, size=n(CFG.BUNDLE_SIZE||30)||30;
   DU_ROWS.forEach(function(r){
     if(String(r.absent).trim()===''){ return; }
     var pres=r.total-n(r.absent); if(pres<=0) return;
     r.dummyFrom=cur; r.dummyTo=cur+pres-1; cur=r.dummyTo+1;
-    var nb=Math.ceil(pres/size); r.foilFrom=fcur; r.foilTo=fcur+nb-1; fcur=r.foilTo+1;
+    var nb=Math.ceil(pres/size);
+    r.foilFrom=fs.p+padN(fcur,fs.w); r.foilTo=fs.p+padN(fcur+nb-1,fs.w); fcur+=nb;
   });
   renderDuring();
   toast('Dummy and foilcard chains filled. Review before saving.','ok');
@@ -1006,7 +1177,7 @@ document.getElementById('duSave').onclick=function(){
 document.querySelectorAll('[data-ex]').forEach(function(el){
   el.onclick=function(){
     document.querySelectorAll('[data-ex]').forEach(function(x){ x.classList.remove('on'); });
-    el.classList.add('on'); EXTYPE=el.dataset.ex; renderExaminers();
+    el.classList.add('on'); EXTYPE=el.dataset.ex; document.getElementById('exFilter').value=''; renderExaminers();
   };
 });
 function renderExaminers(){
@@ -1014,9 +1185,14 @@ function renderExaminers(){
   var q=(document.getElementById('exSearch').value||'').toLowerCase();
   var fv=document.getElementById('exFilter').value;
   var set={}; list.forEach(function(r){ var k=isExt?r['Board']:r['Department']; if(k) set[k]=1; });
-  var sel=document.getElementById('exFilter');
-  sel.innerHTML='<option value="">All '+(isExt?'boards':'departments')+'</option>'+
-    Object.keys(set).sort().map(function(k){ return '<option'+(k===fv?' selected':'')+'>'+esc(k)+'</option>'; }).join('');
+  var sel=document.getElementById('exFilter'), keys=Object.keys(set).sort(), sig=EXTYPE+'|'+keys.join('~');
+  if(sel.dataset.sig!==sig){                                // rebuild only when the list really changed
+    sel.innerHTML='<option value="">All '+(isExt?'boards':'departments')+'</option>'+
+      keys.map(function(k){ return '<option>'+esc(k)+'</option>'; }).join('');
+    sel.dataset.sig=sig;
+    if(keys.indexOf(fv)<0) fv='';
+    sel.value=fv;
+  }
   var rows=list.filter(function(r){
     if(fv && String(isExt?r['Board']:r['Department'])!==fv) return false;
     if(!q) return true;
@@ -1046,8 +1222,8 @@ function renderExaminers(){
   var all=document.getElementById('exAll');
   if(all) all.onclick=function(){ document.querySelectorAll('.exChk').forEach(function(c){ c.checked=all.checked; }); };
 }
-['exSearch','exFilter'].forEach(function(id){ document.getElementById(id).oninput=renderExaminers;
-  document.getElementById(id).onchange=renderExaminers; });
+document.getElementById('exSearch').oninput=renderExaminers;
+document.getElementById('exFilter').onchange=renderExaminers;
 document.getElementById('exTpl').onclick=function(){ dlTemplate(EXTYPE); };
 document.getElementById('exExport').onclick=function(){ exportSheet(EXTYPE); };
 
@@ -1149,25 +1325,36 @@ document.getElementById('examOver').onchange=function(){
   }).catch(function(e){ me.checked=!on; toast(e.message,'err'); });
 };
 document.getElementById('genRecheck').onclick=function(){ loadProgress(); toast('Verification re-run.','ok'); };
-document.getElementById('genBtn').onclick=function(){ runGenerate(false); };
+document.getElementById('genAllDates').onclick=function(){ document.getElementById('genFrom').value=''; document.getElementById('genTo').value=''; };
+document.getElementById('genFrom').onchange=function(){
+  var t=document.getElementById('genTo'); if(this.value && !t.value) t.value=this.value; };
+document.getElementById('genBtn').onclick=function(){
+  var f=document.getElementById('genFrom').value, t=document.getElementById('genTo').value;
+  if(f && t && f>t){ toast('The "From" date is after the "To" date.','err'); return; }
+  var scope=(!f&&!t)?'<b>every date</b>':('<b>'+fmtDate(f||t)+'</b> to <b>'+fmtDate(t||f)+'</b>');
+  modal('Generate bundles','Bundles will be generated for '+scope+'. Existing bundles in that range are rebuilt (their allotments and Board Bundle numbers are kept); other dates are not touched.','',
+    [{t:'Cancel',c:'g'},{t:'Generate',c:'wn',fn:function(){ runGenerate(false); }}]);
+};
 
 function runGenerate(force){
   var b=document.getElementById('genBtn'); busy(b,true,'Generating');
-  api({action:'generateBundles',force:force,preserve:true}).then(function(r){
+  api({action:'generateBundles',force:force,preserve:true,
+       from:document.getElementById('genFrom').value,to:document.getElementById('genTo').value}).then(function(r){
     var box=document.getElementById('genMsg');
     if(!r.ok){
       box.innerHTML='<div class="note e"><b>'+esc(r.error)+'</b><ul>'+
         (r.errors||[]).map(function(x){ return '<li>'+esc(x)+'</li>'; }).join('')+'</ul></div>';
-      modal('Verification failed','These courses did not pass the dummy-number verification. You can fix them, or generate anyway and correct later.',
-        '<div class="note e"><ul>'+(r.errors||[]).map(function(x){ return '<li>'+esc(x)+'</li>'; }).join('')+'</ul></div>',
-        [{t:'Fix them first',c:'g'},{t:'Generate anyway',c:'wn',fn:function(){ runGenerate(true); }}]);
+      if(r.errors&&r.errors.length)
+        modal('Verification failed','These courses did not pass the dummy-number verification. You can fix them, or generate anyway and correct later.',
+          '<div class="note e"><ul>'+(r.errors||[]).map(function(x){ return '<li>'+esc(x)+'</li>'; }).join('')+'</ul></div>',
+          [{t:'Fix them first',c:'g'},{t:'Generate anyway',c:'wn',fn:function(){ runGenerate(true); }}]);
       return;
     }
     DATA=r.rows||[]; afterLoad();
     var h='<div class="note s"><b>'+r.generated+'</b> bundles generated and written to the Data sheet.</div>';
     if(r.warnings&&r.warnings.length) h+='<div class="note w"><b>Warnings</b><ul>'+
       r.warnings.map(function(x){ return '<li>'+esc(x)+'</li>'; }).join('')+'</ul></div>';
-    document.getElementById('genMsg').innerHTML=h;
+    box.innerHTML=h;
     toast(r.generated+' bundles ready for allotment.','ok');
     REPORT=null;
   }).catch(function(e){ toast(e.message,'err'); }).finally(function(){ busy(b,false); });
@@ -1179,17 +1366,18 @@ function renderBundles(){
   var rows=DATA.filter(function(r){
     if(bd && r['Board']!==bd) return false;
     if(!q) return true;
-    return (r['Course Code']+' '+r['Course Name']+' '+r['Bundle No.']).toLowerCase().indexOf(q)>-1;
+    return (r['Course Code']+' '+r['Course Name']+' '+r['Bundle No.']+' '+r['Board Bundle No.']+' '+r['Foilcard No.']).toLowerCase().indexOf(q)>-1;
   });
   var t=document.getElementById('bdTable');
   if(!rows.length){ t.innerHTML='<tbody><tr><td class="empty"><span class="e">&#128230;</span>No bundles yet. Run the generator above.</td></tr></tbody>'; return; }
-  var h='<thead><tr><th class="c">#</th><th>Course</th><th>Board</th><th class="c">Bundle</th><th class="n">Foilcard</th>'+
+  var h='<thead><tr><th class="c">#</th><th>Course</th><th>Board</th><th>Date</th><th class="c">Bundle</th><th class="c">Board Bundle</th><th>Foilcard</th>'+
     '<th class="n">Dummy From</th><th class="n">Dummy To</th><th class="n">Papers</th><th>Faculty</th><th class="c">Type</th></tr></thead><tbody>';
   rows.slice(0,800).forEach(function(r,i){
     h+='<tr><td class="c">'+esc(r['S.No.'])+'</td>'+
       '<td style="min-width:190px"><b>'+esc(r['Course Code'])+'</b><div style="font-size:11px;color:var(--faint)">'+esc(r['Course Name'])+'</div></td>'+
-      '<td><span class="pill inf">'+esc(r['Board'])+'</span></td><td class="c"><b>'+esc(r['Bundle No.'])+'</b></td>'+
-      '<td class="n">'+esc(r['Foilcard No.'])+'</td><td class="n">'+esc(r['Dummy No. From'])+'</td>'+
+      '<td><span class="pill inf">'+esc(r['Board'])+'</span></td><td>'+fmtDate(r['Date'])+' '+esc(r['Session'])+'</td>'+
+      '<td class="c">'+esc(r['Bundle No.'])+'</td><td class="c"><b>'+esc(r['Board Bundle No.'])+'</b></td>'+
+      '<td>'+esc(r['Foilcard No.'])+'</td><td class="n">'+esc(r['Dummy No. From'])+'</td>'+
       '<td class="n">'+esc(r['Dummy No. To'])+'</td><td class="n"><b>'+esc(r['No. of Papers'])+'</b></td>'+
       '<td>'+(r['Alloted Faculty ID']?esc(r['Alloted Faculty ID'])+' &middot; '+esc(r['Faculty Name']):'<span class="pill warn">unallotted</span>')+'</td>'+
       '<td class="c">'+(r['Faculty Type']?'<span class="pill dim">'+esc(r['Faculty Type'])+'</span>':'')+'</td></tr>';
@@ -1233,10 +1421,10 @@ function loadAllot(){
       :'<tbody><tr><td class="empty"><span class="e">&#128203;</span>Nothing generated yet.</td></tr></tbody>';
 
     var pend=DATA.filter(function(x){ return !String(x['Alloted Faculty ID']).trim(); });
-    var ph='<thead><tr><th class="c">#</th><th>Course</th><th>Board</th><th class="c">Bundle</th><th class="n">Papers</th></tr></thead><tbody>';
+    var ph='<thead><tr><th class="c">#</th><th>Course</th><th>Board</th><th class="c">Board Bundle</th><th class="c">Bundle</th><th class="n">Papers</th></tr></thead><tbody>';
     pend.slice(0,300).forEach(function(x,i){
       ph+='<tr><td class="c">'+(i+1)+'</td><td><b>'+esc(x['Course Code'])+'</b> '+esc(x['Course Name'])+'</td>'+
-        '<td><span class="pill inf">'+esc(x['Board'])+'</span></td><td class="c">'+esc(x['Bundle No.'])+'</td>'+
+        '<td><span class="pill inf">'+esc(x['Board'])+'</span></td><td class="c"><b>'+esc(x['Board Bundle No.'])+'</b></td><td class="c">'+esc(x['Bundle No.'])+'</td>'+
         '<td class="n">'+esc(x['No. of Papers'])+'</td></tr>'; });
     document.getElementById('alPending').innerHTML=pend.length?ph+'</tbody>'
       :'<tbody><tr><td class="empty"><span class="e">&#9989;</span>Every bundle has a faculty assigned.</td></tr></tbody>';
@@ -1250,20 +1438,28 @@ var CFG_FIELDS=[
   ['EXAM_MONTH','Examination month'],['EXAM_YEAR','Examination year'],['ACADEMIC_YEAR','Academic year'],
   ['CIRCULAR_REF','Circular reference no.'],['VALUATION_VENUE','Valuation venue'],['VALUATION_TIME','Valuation timing'],
   ['BUNDLE_SIZE','Scripts per bundle'],['RATE_PER_SCRIPT','Rate per script (Rs.)'],['MIN_CLAIM','Minimum claim (Rs.)'],
-  ['DA_PER_DAY','DA + TA per day (Rs.)'],['DA_PER_SESSION','DA + TA per session (Rs.)'],['SITTING_FEE','Sitting fee (Rs.)']
+  ['DA_PER_DAY','DA per day (Rs.) - external examiners only, no TA'],['DA_PER_SESSION','DA per session (Rs.)'],['SITTING_FEE','Sitting fee (Rs.)'],
+  ['TA_DEFAULT','Default TA - college not in TA chart (Rs.)'],['INTERNAL_TA','Internal examiner TA (Rs.)'],
+  ['TA_BASIS','TA is paid',['PER_VISIT','PER_DAY']],['TDS_PERCENT','TDS (%) on gross claim']
 ];
 function renderConfigForm(){
+  var w=document.getElementById('splitWarn');
+  if(w) w.innerHTML=(String(CFG.DA_TA_SPLIT_CONFIRMED||'NO').toUpperCase()!=='YES')
+    ?'<div class="note w"><b>Check DA and TA before using claims.</b> DA and TA are now separate: <b>DA per day must be the DA part only</b> (it used to be &ldquo;DA + TA&rdquo;), and TA comes only from the TA chart below. TA is paid once per visit unless you set &ldquo;TA is paid&rdquo; to PER_DAY. Review the values, then press <b>Save configuration</b> to confirm.</div>':'';
   document.getElementById('cfgForm').innerHTML=CFG_FIELDS.map(function(f){
+    if(f[2]) return '<div><label class="lb">'+f[1]+'</label><select class="inp" data-cfg="'+f[0]+'">'+
+      f[2].map(function(o){ return '<option'+((CFG[f[0]]||f[2][0])===o?' selected':'')+'>'+o+'</option>'; }).join('')+'</select></div>';
     return '<div><label class="lb">'+f[1]+'</label><input class="inp" data-cfg="'+f[0]+'" value="'+esc(CFG[f[0]]||'')+'"></div>';
   }).join('');
 }
 document.getElementById('cfgSave').onclick=function(){
   var b=this, patch={};
   document.querySelectorAll('[data-cfg]').forEach(function(el){ patch[el.dataset.cfg]=el.value; });
+  patch.DA_TA_SPLIT_CONFIRMED='YES';
   busy(b,true,'Saving');
   api({action:'saveConfig',config:patch}).then(function(r){
     if(!r.ok) throw new Error(r.error);
-    CFG=r.config; renderConfigPeek(); toast('Configuration saved.','ok'); REPORT=null;
+    CFG=r.config; renderConfigPeek(); renderConfigForm(); toast('Configuration saved.','ok'); REPORT=null;
   }).catch(function(e){ toast(e.message,'err'); }).finally(function(){ busy(b,false); });
 };
 
@@ -1330,6 +1526,31 @@ function loadAudit(){
 document.getElementById('auRefresh').onclick=loadAudit;
 
 /* ===================================================================================
+ *                                    L O G O
+ *  Loaded on the Reports page, remembered in this browser, printed at the top of
+ *  every page of every report (PDF / Word / Excel) in place of the college name.
+ * =================================================================================== */
+var LOGO='', LOGO_AR=1;
+function setLogo(src,persist){
+  LOGO=src||'';
+  var box=document.getElementById('logoBox');
+  if(!LOGO){ box.innerHTML='No logo'; LOGO_AR=1; try{ localStorage.removeItem(LS.logo); }catch(e){} return; }
+  box.innerHTML='<img src="'+LOGO+'" alt="logo">';
+  var im=new Image(); im.onload=function(){ LOGO_AR=(im.width/im.height)||1; }; im.src=LOGO;
+  if(persist){ try{ localStorage.setItem(LS.logo,LOGO); }catch(e){ toast('Logo is too large to remember; it will be used for this session only.','warn'); } }
+}
+document.getElementById('logoFile').onchange=function(){
+  var f=this.files[0]; if(!f) return;
+  if(!/^image\/(png|jpe?g)$/i.test(f.type)){ toast('Please choose a PNG or JPG image.','err'); this.value=''; return; }
+  if(f.size>2*1024*1024){ toast('Please use a logo under 2 MB.','err'); this.value=''; return; }
+  var fr=new FileReader();
+  fr.onload=function(e){ setLogo(e.target.result,true); toast('Logo loaded. It will appear on every report.','ok'); };
+  fr.readAsDataURL(f);
+};
+document.getElementById('logoClear').onclick=function(){ setLogo('',true); document.getElementById('logoFile').value=''; toast('Logo removed.','ok'); };
+try{ var _lg=localStorage.getItem(LS.logo); if(_lg) setLogo(_lg,false); }catch(e){}
+
+/* ===================================================================================
  *                            R E P O R T   E N G I N E
  * A report is built once as a neutral "spec" of sections, then rendered three ways:
  *   toHTML()  -> print window (PDF)  and  .doc file (Word)
@@ -1341,37 +1562,51 @@ function C(t,o){ o=o||{}; o.t=(t===undefined||t===null)?'':t; return o; }     //
 function secTitle(lines){ return {type:'title',lines:lines}; }
 function secMeta(rows){ return {type:'meta',rows:rows}; }
 function secKV(rows){ return {type:'kv',rows:rows}; }
-function secTable(head,body,widths,foot){ return {type:'table',head:head,body:body,widths:widths,foot:foot||[]}; }
+function secTable(head,body,widths,foot,opt){ return {type:'table',head:head,body:body,widths:widths,foot:foot||[],plain:!!(opt&&opt.plain)}; }
 function secNote(t,o){ return {type:'note',text:t,opt:o||{}}; }
 function secSigns(cols){ return {type:'signs',cols:cols}; }
 function secBreak(){ return {type:'break'}; }
 
-/* ---------- 1. generic HTML renderer ---------- */
+/* ---------- 1. generic HTML renderer (professional layout) ---------- */
 function toHTML(spec,forWord){
   var paper=document.getElementById('rpPaper').value||'A4';
   var css=''+
-  '@page{size:'+paper+' '+(spec.orientation||'portrait')+';margin:12mm 10mm;}'+
-  'body{font-family:"Times New Roman",Georgia,serif;font-size:'+(spec.fs||10.5)+'pt;color:#000;margin:0;}'+
-  '.pg{page-break-after:always;padding:0 0 10px;}.pg:last-child{page-break-after:auto;}'+
-  '.ttl{text-align:center;font-weight:bold;}'+
-  '.t1{font-size:13pt;}.t2{font-size:11.5pt;}.t3{font-size:11pt;text-decoration:underline;margin:4px 0;}'+
-  '.t4{font-size:10.5pt;font-weight:normal;}'+
-  '.meta{width:100%;margin:7px 0;font-size:10pt;}'+
-  '.meta td{padding:2px 0;}.meta td.r{text-align:right;}'+
-  'table.g{width:100%;border-collapse:collapse;margin:6px 0;table-layout:fixed;}'+
-  'table.g th,table.g td{border:1px solid #000;padding:3px 4px;font-size:'+(spec.tfs||9)+'pt;'+
-    'vertical-align:middle;word-wrap:break-word;overflow-wrap:break-word;}'+
-  'table.g th{background:#e8edf7;font-weight:bold;text-align:center;}'+
-  'td.c,th.c{text-align:center;}td.r,th.r{text-align:right;}td.b,th.b{font-weight:bold;}'+
-  '.kv{margin:4px 0;font-size:10pt;}.kv div{padding:1.5px 0;}'+
-  '.note{font-size:10pt;margin:6px 0;text-align:justify;}'+
-  '.sg{display:table;width:100%;margin-top:26px;font-size:10pt;font-weight:bold;}'+
-  '.sg span{display:table-cell;text-align:center;}'+
-  '.hd{text-align:center;margin-bottom:6px;}';
+   '*{-webkit-print-color-adjust:exact;print-color-adjust:exact;}'+
+   '@page{size:'+paper+' '+(spec.orientation||'portrait')+';margin:14mm 12mm 16mm 12mm;}'+
+   'body{font-family:"Times New Roman",Georgia,serif;font-size:'+(spec.fs||10.5)+'pt;line-height:1.4;color:#111;margin:0;}'+
+   '.pg{page-break-after:always;padding:0 2px;}.pg:last-child{page-break-after:auto;}'+
+   '.lg{text-align:center;margin:0 0 4px;}.lg img{height:22mm;max-width:70mm;}'+
+   '.hd{text-align:center;margin:0 0 8px;padding-bottom:6px;border-bottom:2px solid #1f3864;}'+
+   '.ttl{text-align:center;font-weight:bold;color:#1f3864;line-height:1.35;}'+
+   '.t1{font-size:14pt;}.t2{font-size:12pt;}.t3{font-size:11.5pt;text-decoration:underline;margin:5px 0;}'+
+   '.t4{font-size:10.5pt;font-weight:normal;color:#222;}'+
+   'table.meta{width:100%;border-collapse:collapse;margin:6px 0;font-size:10pt;}'+
+   'table.meta td{padding:3px 0;vertical-align:top;}table.meta td.r{text-align:right;}'+
+   'table.g{width:100%;border-collapse:collapse;margin:8px 0 12px;table-layout:fixed;}'+
+   'table.g th,table.g td{border:1px solid #333;padding:4px 5px;font-size:'+(spec.tfs||9)+'pt;vertical-align:middle;word-wrap:break-word;overflow-wrap:break-word;}'+
+   'table.g th{background:#dfe6f3;color:#1f3864;font-weight:bold;text-align:center;}'+
+   'table.g td{height:7mm;}'+
+   'table.g tbody tr:nth-child(even) td{background:#f7f9fd;}'+
+   'table.g.plain tbody tr:nth-child(even) td{background:#fff;}'+
+   'table.g tr.tot td{background:#e9eef8;font-weight:bold;}'+
+   'table.g thead{display:table-header-group;}table.g tr{page-break-inside:avoid;}'+
+   'td.c,th.c{text-align:center;}td.r,th.r{text-align:right;}td.b,th.b{font-weight:bold;}'+
+   'table.kvt{border-collapse:collapse;margin:6px 0 10px;font-size:10pt;}'+
+   'table.kvt td{padding:2px 0;vertical-align:top;}table.kvt td.k{width:62mm;font-weight:bold;}table.kvt td.s{width:7mm;text-align:center;}'+
+   '.note{font-size:10pt;margin:8px 0;text-align:justify;}'+
+   'table.sgt{width:100%;border-collapse:collapse;margin-top:6mm;page-break-inside:avoid;}'+
+   'table.sgt td{padding:0 8mm;text-align:center;vertical-align:bottom;height:20mm;font-size:10pt;font-weight:bold;}'+
+   'table.sgt td div{border-top:1px solid #333;padding-top:2px;}'+
+   '.ft{margin-top:14px;padding-top:4px;border-top:1px solid #9aa5c0;font-size:8pt;color:#555;text-align:right;}';
 
+  var lsrc=forWord?'file:///C:/eplogo.'+logoExt():LOGO;
+  var logoHtml=LOGO?'<div class="lg"><img src="'+lsrc+'" alt=""></div>':'';
+  var pagesArr=spec.pages||[spec.sections];
+  var stamp=fmtDate(new Date().toISOString());
   var body='';
-  (spec.pages||[spec.sections]).forEach(function(sections){
-    body+='<div class="pg">'+sections.map(renderSection).join('')+'</div>';
+  pagesArr.forEach(function(sections,i){
+    body+='<div class="pg">'+logoHtml+sections.map(renderSection).join('')+
+      '<div class="ft">'+esc(CFG.INSTITUTION||'')+' &middot; Generated on '+stamp+' &middot; Page '+(i+1)+' of '+pagesArr.length+'</div></div>';
   });
 
   if(forWord){
@@ -1383,44 +1618,49 @@ function toHTML(spec,forWord){
   return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc(spec.file||'Report')+'</title>'+
     '<style>'+css+'</style></head><body>'+body+'</body></html>';
 }
+function logoExt(){ return /^data:image\/jpe?g/i.test(LOGO)?'jpg':'png'; }
 function renderSection(s){
   if(s.type==='title')
     return '<div class="hd">'+s.lines.map(function(l){
       return '<div class="ttl '+(l.cls||'t2')+'">'+esc(l.t)+'</div>'; }).join('')+'</div>';
   if(s.type==='meta')
     return '<table class="meta">'+s.rows.map(function(r){
-      return '<tr><td>'+boldify(r[0])+'</td><td class="r">'+boldify(r[1]||'')+'</td></tr>'; }).join('')+'</table>';
+      return '<tr><td>'+boldify(r[0])+'</td><td class="r">'+boldify(r[1])+'</td></tr>'; }).join('')+'</table>';
   if(s.type==='kv')
-    return '<div class="kv">'+s.rows.map(function(r){
-      return '<div>'+boldify(r[0])+' &nbsp;:&nbsp; '+boldify(r[1]||'')+'</div>'; }).join('')+'</div>';
+    return '<table class="kvt">'+s.rows.map(function(r){
+      return '<tr><td class="k">'+boldify(r[0])+'</td><td class="s">:</td><td>'+boldify(r[1])+'</td></tr>'; }).join('')+'</table>';
   if(s.type==='note') return '<div class="note">'+boldify(s.text)+'</div>';
   if(s.type==='signs')
-    return '<div class="sg">'+s.cols.map(function(c){ return '<span>'+esc(c)+'</span>'; }).join('')+'</div>';
+    return '<table class="sgt"><tr>'+s.cols.map(function(c){ return '<td>'+(c?'<div>'+esc(c)+'</div>':'')+'</td>'; }).join('')+'</tr></table>';
   if(s.type==='break') return '<div style="page-break-after:always"></div>';
   if(s.type==='table'){
-    var h='<table class="g">';
-    if(s.widths&&s.widths.length) h+='<colgroup>'+s.widths.map(function(w){ return '<col style="width:'+w+'%">'; }).join('')+'</colgroup>';
+    var h='<table class="g'+(s.plain?' plain':'')+'">';
+    if(s.widths&&s.widths.length){
+      var tw=s.widths.reduce(function(a,w){ return a+w; },0)||100;
+      h+='<colgroup>'+s.widths.map(function(w){ return '<col style="width:'+(w*100/tw).toFixed(2)+'%">'; }).join('')+'</colgroup>';
+    }
     if(s.head&&s.head.length) h+='<thead>'+s.head.map(rowHtml('th')).join('')+'</thead>';
     h+='<tbody>'+(s.body||[]).map(rowHtml('td')).join('');
-    if(s.foot&&s.foot.length) h+=s.foot.map(rowHtml('td')).join('');
+    if(s.foot&&s.foot.length) h+=s.foot.map(rowHtml('td','tot')).join('');
     return h+'</tbody></table>';
   }
   return '';
 }
-function rowHtml(tag){
+function rowHtml(tag,trc){
   return function(row){
-    return '<tr>'+row.map(function(c){
+    return '<tr'+(trc?' class="'+trc+'"':'')+'>'+row.map(function(c){
       c=(typeof c==='object'&&c!==null)?c:C(c);
       var at='';
       if(c.cs>1) at+=' colspan="'+c.cs+'"';
       if(c.rs>1) at+=' rowspan="'+c.rs+'"';
       var cls=[]; if(c.a==='c') cls.push('c'); if(c.a==='r') cls.push('r'); if(c.b) cls.push('b');
       if(cls.length) at+=' class="'+cls.join(' ')+'"';
-      return '<'+tag+at+'>'+esc(c.t)+'</'+tag+'>';
+      var tx=esc(c.t); if(tx==='') tx='&nbsp;';
+      return '<'+tag+at+'>'+tx+'</'+tag+'>';
     }).join('')+'</tr>';
   };
 }
-function boldify(s){ return esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>'); }
+function boldify(s){ return esc(s===undefined||s===null?'':s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>'); }
 
 /* ---------- 2. PDF (print) ---------- */
 function outPDF(spec){
@@ -1428,31 +1668,67 @@ function outPDF(spec){
   if(!w){ toast('Allow pop-ups for this site so the print view can open.','err'); return; }
   w.document.write(toHTML(spec,false));
   w.document.close();
-  w.onload=function(){ setTimeout(function(){ w.focus(); w.print(); },350); };
-  setTimeout(function(){ try{ w.focus(); w.print(); }catch(e){} },900);
+  var fired=false, go=function(){ if(fired) return; fired=true; try{ w.focus(); w.print(); }catch(e){} };
+  w.onload=function(){ setTimeout(go,400); };
+  setTimeout(go,1200);
   toast('Print view opened &mdash; choose "Save as PDF".','ok');
 }
-/* ---------- 3. Word ---------- */
+/* ---------- 3. Word  (MHTML when a logo is present so the image is embedded and shows in Word) ---------- */
 function outWord(spec){
-  var blob=new Blob(['\ufeff'+toHTML(spec,true)],{type:'application/msword;charset=utf-8'});
+  var html=toHTML(spec,true), blob;
+  var m=LOGO.match(/^data:(image\/[a-z+.-]+);base64,(.*)$/i);
+  if(m){
+    var wrap=function(s){ return s.replace(/(.{76})/g,'$1\r\n'); };
+    var b='----=_NextPart_EP'+Date.now();
+    var mht=['MIME-Version: 1.0',
+      'Content-Type: multipart/related; boundary="'+b+'"; type="text/html"','',
+      '--'+b,'Content-Type: text/html; charset="utf-8"','Content-Transfer-Encoding: base64',
+      'Content-Location: file:///C:/report.htm','',
+      wrap(btoa(unescape(encodeURIComponent(html)))),'',
+      '--'+b,'Content-Type: '+m[1],'Content-Transfer-Encoding: base64',
+      'Content-Location: file:///C:/eplogo.'+logoExt(),'',
+      wrap(m[2]),'','--'+b+'--',''].join('\r\n');
+    blob=new Blob([mht],{type:'application/msword'});
+  } else blob=new Blob(['\ufeff'+html],{type:'application/msword;charset=utf-8'});
   saveAs(blob,spec.file+'.doc');
   toast('Word file downloaded.','ok');
 }
 /* ---------- 4. Excel ---------- */
+function logoColPos(ws,span,wpx){
+  var cols=[],tot=0,c;
+  for(c=1;c<=span;c++){ var w=((ws.getColumn(c).width||14)*7)+5; cols.push(w); tot+=w; }
+  var x=Math.max(0,(tot-wpx)/2), acc=0;
+  for(c=0;c<span;c++){ if(acc+cols[c]>x) return c+(x-acc)/cols[c]; acc+=cols[c]; }
+  return 0;
+}
 function outExcel(spec){
   var wb=new ExcelJS.Workbook();
   wb.creator=CFG.INSTITUTION||'Evaluation Portal';
   var pages=spec.pages||[spec.sections];
+  var imgId=null;
+  if(LOGO){
+    var mm=LOGO.match(/^data:image\/[a-z+.-]+;base64,(.*)$/i);
+    if(mm) imgId=wb.addImage({base64:mm[1],extension:/^data:image\/jpe?g/i.test(LOGO)?'jpeg':'png'});
+  }
   pages.forEach(function(sections,pi){
     var nm=(spec.sheet||spec.file||'Report').substring(0,24)+(pages.length>1?' '+(pi+1):'');
     var ws=wb.addWorksheet(nm.replace(/[\\\/\?\*\[\]:]/g,'-'),
       {pageSetup:{orientation:spec.orientation||'portrait',fitToPage:true,fitToWidth:1,fitToHeight:0,
-                  paperSize:9,margins:{left:.3,right:.3,top:.4,bottom:.4,header:.2,footer:.2}}});
+                  paperSize:9,horizontalCentered:true,
+                  margins:{left:.4,right:.4,top:.6,bottom:.6,header:.25,footer:.25}}});
+    ws.headerFooter.oddFooter='&L&8'+(CFG.INSTITUTION||'')+'&R&8Page &P of &N';
     var span=maxSpan(sections)||8;
-    var r=1;
-    sections.forEach(function(s){ r=xlSection(ws,s,r,span,spec); });
+    // column widths first, so the logo can be centred over the table
     if(spec.widths&&spec.widths.length) spec.widths.forEach(function(w,i){ ws.getColumn(i+1).width=Math.max(5,w*0.95); });
     else for(var c=1;c<=span;c++) ws.getColumn(c).width=14;
+    var r=1;
+    if(imgId!==null){
+      var h=64, w=Math.round(h*LOGO_AR);
+      for(var k=1;k<=4;k++) ws.getRow(k).height=18;
+      ws.addImage(imgId,{tl:{col:logoColPos(ws,span,w),row:0.2},ext:{width:w,height:h}});
+      r=5;
+    }
+    sections.forEach(function(s){ r=xlSection(ws,s,r,span,spec); });
   });
   wb.xlsx.writeBuffer().then(function(buf){
     saveAs(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), spec.file+'.xlsx');
@@ -1471,16 +1747,17 @@ function maxSpan(sections){
   });
   return m;
 }
-var XL_BORDER={top:{style:'thin'},left:{style:'thin'},bottom:{style:'thin'},right:{style:'thin'}};
+var XL_BORDER={top:{style:'thin',color:{argb:'FF444444'}},left:{style:'thin',color:{argb:'FF444444'}},
+               bottom:{style:'thin',color:{argb:'FF444444'}},right:{style:'thin',color:{argb:'FF444444'}}};
 function xlSection(ws,s,r,span,spec){
   if(s.type==='title'){
     s.lines.forEach(function(l){
       ws.mergeCells(r,1,r,span);
       var c=ws.getCell(r,1); c.value=l.t;
       c.font={bold:true,size:l.cls==='t1'?14:(l.cls==='t4'?10:11.5),name:'Times New Roman',
-              underline:l.cls==='t3'};
+              underline:l.cls==='t3',color:{argb:'FF1F3864'}};
       c.alignment={horizontal:'center',vertical:'middle',wrapText:true};
-      ws.getRow(r).height=l.cls==='t1'?20:17; r++;
+      ws.getRow(r).height=l.cls==='t1'?22:18; r++;
     });
     r++; return r;
   }
@@ -1497,11 +1774,14 @@ function xlSection(ws,s,r,span,spec){
     r++; return r;
   }
   if(s.type==='kv'){
+    var lab=Math.max(1,Math.min(span-1,Math.floor(span*0.4)));
     s.rows.forEach(function(row){
-      ws.getCell(r,1).value=plain(row[0]); ws.getCell(r,1).font={bold:true,name:'Times New Roman',size:10};
-      var half=Math.max(2,Math.floor(span/3));
-      ws.mergeCells(r,half,r,span);
-      ws.getCell(r,half).value=plain(row[1]||''); ws.getCell(r,half).font={name:'Times New Roman',size:10};
+      if(lab>1) ws.mergeCells(r,1,r,lab);
+      var a=ws.getCell(r,1); a.value=plain(row[0])+' :'; a.font={bold:true,name:'Times New Roman',size:10}; a.alignment={horizontal:'left'};
+      if(span>lab){
+        if(span>lab+1) ws.mergeCells(r,lab+1,r,span);
+        var b=ws.getCell(r,lab+1); b.value=plain(row[1]); b.font={name:'Times New Roman',size:10}; b.alignment={horizontal:'left'};
+      }
       r++;
     });
     r++; return r;
@@ -1526,10 +1806,10 @@ function xlSection(ws,s,r,span,spec){
   }
   if(s.type==='break'){ return r+1; }
   if(s.type==='table'){
-    var occ={};
+    var occ={}, zebra=0;
     var put=function(rows,isHead){
       rows.forEach(function(row){
-        var col=1;
+        var col=1, ml=1; zebra++;
         row.forEach(function(cell){
           cell=(typeof cell==='object'&&cell!==null)?cell:C(cell);
           while(occ[r+','+col]) col++;
@@ -1540,16 +1820,19 @@ function xlSection(ws,s,r,span,spec){
           } else occ[r+','+col]=1;
           var c=ws.getCell(r,col);
           var v=cell.t;
-          c.value=(v!==''&&v!==null&&!isNaN(v)&&typeof v!=='boolean'&&/^-?\d+(\.\d+)?$/.test(String(v)))?Number(v):v;
+          c.value=(v!==''&&v!==null&&!isNaN(v)&&typeof v!=='boolean'&&/^-?\d+(\.\d+)?$/.test(String(v))&&String(v).length<10)?Number(v):v;
           c.border=XL_BORDER;
-          c.font={bold:!!(isHead||cell.b),name:'Times New Roman',size:9};
+          c.font={bold:!!(isHead||cell.b),name:'Times New Roman',size:9,color:{argb:isHead?'FFFFFFFF':'FF000000'}};
           c.alignment={horizontal:isHead?'center':(cell.a==='c'?'center':(cell.a==='r'?'right':'left')),
                        vertical:'middle',wrapText:true};
-          if(isHead) c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFE8EDF7'}};
+          if(isHead) c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1F3864'}};
+          else if(zebra%2===0) c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF4F6FB'}};
+          if(rs===1){ var wc=0; for(var q=0;q<cs;q++) wc+=(ws.getColumn(col+q).width||14); var ln=Math.ceil(String(cell.t).length/Math.max(3,wc*1.05)); if(ln>ml) ml=ln; }
           col+=cs;
         });
         // fill the rest of the row so the border grid is unbroken
         for(var k=1;k<=span;k++){ if(!occ[r+','+k]){ var e=ws.getCell(r,k); e.border=XL_BORDER; occ[r+','+k]=1; } }
+        ws.getRow(r).height=Math.max(isHead?20:18,ml*12+6);
         r++;
       });
     };
@@ -1562,12 +1845,11 @@ function plain(s){ return String(s===undefined?'':s).replace(/\*\*/g,''); }
 
 /* ---------- report data ---------- */
 function loadReportData(){
-  var board=document.getElementById('rpBoard').value||'ALL';
   var box=document.getElementById('rpStatus');
   box.innerHTML='<div class="note i"><span class="spin2"></span> Fetching report data&hellip;</div>';
   return api({action:'reportData',board:'ALL'}).then(function(r){
     if(!r.ok) throw new Error(r.error);
-    REPORT=r; CFG=r.config||CFG;
+    REPORT=r; CFG=r.config||CFG; TA=r.taChart||TA;
     box.innerHTML='<div class="note s">Data ready &mdash; <b>'+r.before.length+'</b> courses, <b>'+r.data.length+
       '</b> bundles, <b>'+r.external.length+'</b> external and <b>'+r.internal.length+'</b> internal examiners.</div>';
   }).catch(function(e){ box.innerHTML='<div class="note e">'+esc(e.message)+'</div>'; });
@@ -1587,10 +1869,13 @@ function boardsToRun(){
 }
 function byBoard(rows,b){ return b==='ALL'?rows:rows.filter(function(r){ return String(r['Board']).trim()===b; }); }
 function valDate(){ var d=document.getElementById('rpDate').value; return d?fmtDate(d):''; }
+/* With a logo loaded it replaces the college name at the top of every report */
 function headLines(extra){
-  var L=[{t:CFG.INSTITUTION||'',cls:'t1'},{t:CFG.OFFICE||'Office of the Controller of Examinations',cls:'t2'},
+  var L=[];
+  if(!LOGO) L.push({t:CFG.INSTITUTION||'',cls:'t1'});
+  L.push({t:CFG.OFFICE||'Office of the Controller of Examinations',cls:LOGO?'t1':'t2'},
          {t:'Valuation for '+(CFG.EXAM_TITLE||'End Semester Examinations'),cls:'t4'},
-         {t:'Year - I, II, III & IV / (UG) - I & II (PG)',cls:'t4'}];
+         {t:'Year - I, II, III & IV / (UG) - I & II (PG)',cls:'t4'});
   if(extra) L.push({t:extra,cls:'t3'});
   return L;
 }
@@ -1600,7 +1885,6 @@ function repProforma(){
   var b=boardFilter();
   var during=byBoard(R().during,b), before=byBoard(R().before,b);
   var src=during.length?during:before;
-  // day count per date+session
   var day={};
   src.forEach(function(r){ var k=toISO(r['Date'])+'|'+r['Session'];
     day[k]=(day[k]||0)+n(r['Present']||r['Total Students']); });
@@ -1633,7 +1917,7 @@ function repProforma(){
   });
   var tot=src.reduce(function(a,r){ return a+n(r['Present']||r['Total Students']); },0);
   var foot=[[C('Total',{cs:11,b:1,a:'r'}),C(tot,{b:1,a:'r'}),C('',{cs:18})]];
-  var widths=[4,4,7,16,4,3.5,6,9,3.5,6,4,4,5,5,5,4,4,4.5,4.5,4,4,4,4,4,3.5,3.5,4,4,3.5,4];
+  var widths=[4,4,7,16,4,3.5,6,9,3.5,6,4,4,5,5,5,5.5,5.5,4.5,4.5,4,4,4,4,4,3.5,3.5,4,4,3.5,4];
   return {file:'Proforma_'+b, sheet:'Proforma', orientation:'landscape', fs:9, tfs:7.5, widths:widths,
     sections:[ secTitle(headLines('Proforma — '+(b==='ALL'?'All Boards':'Board : '+b))),
                secMeta([['**Examination : **'+(CFG.EXAM_TITLE||''),'**Date : **'+valDate()]]),
@@ -1642,39 +1926,42 @@ function repProforma(){
 
 /* ================= REPORT 2 : CHECKLIST ================= */
 function repCheckList(){
+  var W=[6,10,24,12,11,7,7,8,8,7];
   var pages=boardsToRun().map(function(b){
-    var rows=byBoard(R().data,b);
+    var seq=function(r){ var m=String(bb(r)).match(/(\d+)\s*$/); return m?parseInt(m[1],10):0; };
+    var rows=byBoard(R().data,b).slice().sort(function(x,y){ return seq(x)-seq(y); });   // Board Bundle order
     var head=[
-      [C('S.No.',{rs:2}),C('Course Code',{rs:2}),C('Course Name',{rs:2}),C('Bundle No.',{rs:2}),
+      [C('S.No.',{rs:2}),C('Course Code',{rs:2}),C('Course Name',{rs:2}),C('Board Bundle No.',{rs:2}),
        C('Foilcard No.',{rs:2}),C('Dummy Number',{cs:2}),C('No. of Booklets',{rs:2}),C('Checklist (Please Tick)',{cs:2})],
       [C('From'),C('To'),C('Answer Booklet'),C('OMR')]
     ];
     var body=rows.map(function(r,i){
-      return [C(i+1,{a:'c'}),C(r['Course Code'],{b:1}),C(r['Course Name']),C(r['Bundle No.'],{a:'c'}),
+      return [C(i+1,{a:'c'}),C(r['Course Code'],{b:1,a:'c'}),C(r['Course Name']),C(bb(r),{a:'c',b:1}),
         C(r['Foilcard No.'],{a:'c'}),C(r['Dummy No. From'],{a:'c'}),C(r['Dummy No. To'],{a:'c'}),
         C(r['No. of Papers'],{a:'c'}),C(''),C('')];
     });
+    if(!body.length) body=[[C(''),C(''),C(''),C(''),C(''),C(''),C(''),C(''),C(''),C('')]];
     var books=rows.reduce(function(a,r){ return a+n(r['No. of Papers']); },0);
-    var foot=[[C('',{cs:4}),C('Total Bundle : '+rows.length,{cs:2,b:1,a:'c'}),
-               C('Total Booklets : '+books,{cs:2,b:1,a:'c'}),C('',{cs:2})]];
+    var foot=[[C('Total Bundles : '+rows.length,{cs:5,b:1,a:'r'}),C('Total Booklets',{cs:2,b:1,a:'r'}),C(books,{b:1,a:'c'}),C('',{cs:2})]];
     var used={}; rows.forEach(function(r){ if(r['Alloted Faculty ID']) used[r['Alloted Faculty ID']]=r['Faculty Type']; });
-    var ints=Object.keys(used).filter(function(k){ return String(used[k]).toUpperCase()!=='EXTERNAL'; }).length;
+    var ints=Object.keys(used).filter(function(k){ return !/^EXT/i.test(k); }).length;
     var exts=Object.keys(used).length-ints;
     var head2=[[C('S.No.'),C('Particulars'),C("No's"),C('Verification (Tick Mark)')]];
-    var body2=[['1','No of OMR Sheet',books,''],['2','Issue Register (Cum Claim) Sheet for All Examiners',ints+exts,''],
+    // OMR sheets are counted per bundle (one OMR sheet for each bundle), not per booklet
+    var body2=[['1','No of OMR Sheet',rows.length,''],['2','Issue Register (Cum Claim) Sheet for All Examiners',ints+exts,''],
                ['3','Chairman Booklet','1',''],['4','Tabulator Form Booklet','1',''],['5','Feedback Booklet',exts,'']]
       .map(function(r){ return [C(r[0],{a:'c'}),C(r[1]),C(r[2],{a:'c'}),C(r[3])]; });
     return [ secTitle(headLines('Check List')),
              secMeta([['**BOARD : **'+b,'**DATE : **'+valDate()]]),
-             secTable(head,body,[5,10,28,8,9,8,8,8,8,8],foot),
-             secNote('**Total Bundle :** '+rows.length+'      **Total No of Booklets :** '+books),
-             secNote('Total No of Internals: '+(ints||'_______')+'      Total No of Externals: '+(exts||'_______')),
-             secSigns(['Signature Of CoE Staff: ______________','Signature of the Board Chairman: ______________']),
+             secTable(head,body,W,foot),
+             secKV([['Total Bundle',rows.length],['Total No of Booklets',books],
+                    ['Total No of Internals',ints||'_______'],['Total No of Externals',exts||'_______']]),
+             secSigns(['Signature of CoE Staff','Signature of the Board Chairman']),
              secTitle([{t:'Check List',cls:'t3'}]),
              secTable(head2,body2,[8,54,14,24]) ];
   });
   return {file:'CheckList_'+boardFilter(), sheet:'CheckList', orientation:'portrait',
-          widths:[5,10,28,8,9,8,8,8,8,8], pages:pages};
+          widths:W, pages:pages};
 }
 
 /* ================= REPORT 3 : FEEDBACK FORM ================= */
@@ -1714,50 +2001,46 @@ function repFeedback(){
 
 /* ================= REPORT 4 : ISSUE REGISTER ================= */
 function irPage(ex,bundles,board,isExt){
-  var rate=n(CFG.RATE_PER_SCRIPT||20), minc=n(CFG.MIN_CLAIM||100);
-  var scripts=bundles.reduce(function(a,r){ return a+n(r['No. of Papers']); },0);
-  var amtA=Math.max(scripts*rate, scripts?minc:0);
-  var days={}; bundles.forEach(function(r){ if(r['Valuation Day']) days[r['Valuation Day']]=1; });
-  var nDays=Object.keys(days).length||1;
-  var amtB=n(CFG.DA_PER_DAY||500)*nDays, amtC=n(CFG.SITTING_FEE||200);
-
+  var c=calcClaim(ex,bundles,isExt);
+  var rate=amt(CFG.RATE_PER_SCRIPT||20), minc=amt(CFG.MIN_CLAIM||100), pct=amt(CFG.TDS_PERCENT||0);
   var head=[
-    [C('Bundle No.',{rs:2}),C('Date',{rs:2}),C('Session',{rs:2}),C('Course Code and Name',{rs:2}),
+    [C('Board Bundle No.',{rs:2}),C('Date',{rs:2}),C('Session',{rs:2}),C('Course Code and Name',{rs:2}),
      C('Foil Card. No.',{rs:2}),C('Dummy No.',{cs:2}),C('Script Count',{rs:2}),
      C('Signature of the Examiner',{cs:2}),C('Claim Section  (TDS as per Govt. norms)',{cs:2})],
     [C('From'),C('To'),C('Answer Bundle Received'),C('OMR Submitted'),C('Particulars'),C('Amount')]
   ];
   var claims=[
-    ['Total Number of Answer Scripts valued', scripts],
-    ['Amount for Valuating Answer Script','Rs. '+rate+' per script or Rs. '+minc+' (minimum)'],
-    ['Amount for total Answer Scripts Valued (A)','Rs. '+amtA],
-    ['DA + TA Allowance ('+(CFG.DA_PER_DAY||500)+'/Day, '+(CFG.DA_PER_SESSION||300)+'/Session) (B)','Rs. '+amtB],
-    ['Sitting Fee (If Applicable) (C)','Rs. '+amtC],
-    ['Total = A + B + C','Rs. '+(amtA+amtB+amtC)],
-    ['# Optional: one-way travel > 75 KM at Rs. 8 per KM (D)',''],
-    ['Total = A + B + C + D','']
+    ['Total Number of Answer Scripts valued', c.scripts],
+    ['Rate per script','Rs. '+money(rate)+' (min. Rs. '+money(minc)+')'],
+    ['Valuation amount (A)','Rs. '+money(c.A)],
+    [(isExt?'DA only @ Rs. '+money(amt(CFG.DA_PER_DAY||0))+' x '+c.days+' day(s) (B)':'DA - not applicable to internal examiners (B)'),'Rs. '+money(c.B)],
+    ['TA '+(c.perDay?'x '+c.days+' day(s)':'once')+(isExt&&ex&&ex['College Name']?' - '+ex['College Name']:'')+' (T)','Rs. '+money(c.T)],
+    ['Sitting fee (C)','Rs. '+money(c.C)],
+    ['Gross = A + B + T + C','Rs. '+money(c.gross)],
+    ['TDS @ '+money(pct)+'%','Rs. '+money(c.tds)],
+    ['Net payable','Rs. '+money(c.net)]
   ];
   var body=[];
   var maxRows=Math.max(bundles.length, claims.length);
   for(var i=0;i<maxRows;i++){
     var bn=bundles[i];
     body.push([
-      C(bn?bn['Bundle No.']:'',{a:'c'}), C(bn?fmtDate(bn['Date']):'',{a:'c'}), C(bn?bn['Session']:'',{a:'c'}),
+      C(bn?bb(bn):'',{a:'c'}), C(bn?fmtDate(bn['Date']):'',{a:'c'}), C(bn?bn['Session']:'',{a:'c'}),
       C(bn?(bn['Course Code']+' - '+bn['Course Name']):''),
       C(bn?bn['Foilcard No.']:'',{a:'c'}), C(bn?bn['Dummy No. From']:'',{a:'c'}), C(bn?bn['Dummy No. To']:'',{a:'c'}),
       C(bn?bn['No. of Papers']:'',{a:'c'}), C(''), C(''),
       C(claims[i]?claims[i][0]:''), C(claims[i]?claims[i][1]:'',{a:'c'})
     ]);
   }
-  var foot=[[C('No. of Days : '+nDays,{cs:4,b:1}),C('Total Script Valued : '+scripts,{cs:4,b:1,a:'c'}),
-             C('',{cs:2}),C('Total Claim',{b:1}),C('Rs. '+(amtA+amtB+amtC),{b:1,a:'c'})]];
+  var foot=[[C('No. of Days : '+c.days,{cs:4,b:1}),C('Total Script Valued : '+c.scripts,{cs:4,b:1,a:'c'}),
+             C('',{cs:2}),C('Net payable',{b:1}),C('Rs. '+money(c.net),{b:1,a:'c'})]];
   return [ secTitle(headLines('Issue Register for '+(isExt?'External':'Internal')+' Examiner')),
-           secTable([[C('Examiner Name:',{b:1}),C(ex?ex['Name of the Faculty']:''),
-                      C('College Code and Name:',{b:1}),C(ex?((ex['College Code']||'')+' '+(ex['College Name']||'')):'')],
-                     [C('Mobile Number:',{b:1}),C(ex?(ex['Mobile Number']||ex['Mobile']||''):''),
-                      C('Board / ID. No. :',{b:1}),C(board+'  /  '+(ex?ex['ID']:''))]],[],[18,32,20,30]),
-           secTable(head,body,[6,7,5,20,7,6,6,6,8,8,14,7],foot),
-           secSigns(['Signature','Board Chairman','CoE staff']) ];
+           secTable([],[[C('Examiner Name :',{b:1}),C(ex?ex['Name of the Faculty']:''),
+                      C('College Code and Name :',{b:1}),C(ex?(((ex['College Code']||'')+' '+(ex['College Name']||'')).trim()||ex['Department']||''):'')],
+                     [C('Mobile Number :',{b:1}),C(ex?(ex['Mobile Number']||ex['Mobile']||''):''),
+                      C('Board / ID. No. :',{b:1}),C(board+'  /  '+(ex?ex['ID']:''))]],[18,32,20,30],[],{plain:true}),
+           secTable(head,body,[7,6,4,15,7,5,5,5,7,7,22,10],foot),
+           secSigns(['Signature of the Examiner','Board Chairman','CoE staff']) ];
 }
 function repIssueRegister(){
   var pages=[];
@@ -1776,7 +2059,7 @@ function repIssueRegister(){
     });
   });
   return {file:'IssueRegister_'+boardFilter(), sheet:'IssueReg', orientation:'landscape',
-          widths:[6,7,5,20,7,6,6,6,8,8,14,7], pages:pages};
+          widths:[7,6,4,15,7,5,5,5,7,7,22,10], pages:pages};
 }
 
 /* ================= REPORT 5 : TABULATION ================= */
@@ -1784,26 +2067,29 @@ function repTabulation(){
   var pages=boardsToRun().map(function(b){
     var rows=byBoard(R().data,b);
     var head=[
-      [C('Course Code & Name',{rs:2}),C('Foil Card Number',{rs:2}),C('Dummy Number of the Answer Scripts',{rs:2}),
+      [C('Course Code & Name',{rs:2}),C('Board Bundle No.',{rs:2}),C('Foil Card Number',{rs:2}),C('Dummy Number of the Answer Scripts',{rs:2}),
        C('Name of the Examiner',{rs:2}),C('Error in Total Mark Awarded',{rs:2}),C('Corrected Mark',{rs:2}),
        C('Corrections are rectified Yes/No',{rs:2}),C('Signature',{cs:2})],
       [C('Examiner'),C('Tabulator')]
     ];
     var body=rows.map(function(r){
-      return [C(r['Course Code']+' - '+r['Course Name']),C(r['Foilcard No.'],{a:'c'}),
+      return [C(r['Course Code']+' - '+r['Course Name']),C(bb(r),{a:'c',b:1}),C(r['Foilcard No.'],{a:'c'}),
         C(r['Dummy No. From']+' - '+r['Dummy No. To'],{a:'c'}),C(r['Faculty Name']||''),
         C(''),C(''),C(''),C(''),C('')];
     });
-    if(!body.length) for(var i=0;i<20;i++) body.push([C(''),C(''),C(''),C(''),C(''),C(''),C(''),C(''),C('')]);
-    return [ secTitle([{t:CFG.OFFICE||'Office of the Controller of Examinations',cls:'t1'},
-                       {t:'Valuation for End Semester Examinations April _______ November _______',cls:'t4'},
-                       {t:'Year - I, II, III & IV / (UG) - I & II (PG) - Tabulation of Answer Scripts',cls:'t4'}]),
+    if(!body.length) for(var i=0;i<6;i++) body.push([C(''),C(''),C(''),C(''),C(''),C(''),C(''),C(''),C(''),C('')]);
+    return [ secTitle(LOGO?[{t:CFG.OFFICE||'Office of the Controller of Examinations',cls:'t1'},
+                            {t:'Valuation for End Semester Examinations April _______ November _______',cls:'t4'},
+                            {t:'Year - I, II, III & IV / (UG) - I & II (PG) - Tabulation of Answer Scripts',cls:'t4'}]
+                          :[{t:CFG.INSTITUTION||'',cls:'t1'},{t:CFG.OFFICE||'Office of the Controller of Examinations',cls:'t2'},
+                            {t:'Valuation for End Semester Examinations April _______ November _______',cls:'t4'},
+                            {t:'Year - I, II, III & IV / (UG) - I & II (PG) - Tabulation of Answer Scripts',cls:'t4'}]),
              secMeta([['**Board : **'+b,'**Date : **'+valDate()]]),
-             secTable(head,body,[22,9,14,16,10,8,9,6,6]),
+             secTable(head,body,[20,9,9,13,15,9,8,9,4,4]),
              secSigns(['','Signature of the Board Chairman']) ];
   });
   return {file:'TabulationValuation_'+boardFilter(), sheet:'Tabulation', orientation:'landscape',
-          widths:[22,9,14,16,10,8,9,6,6], pages:pages};
+          widths:[20,9,9,13,15,9,8,9,4,4], pages:pages};
 }
 
 /* ================= REPORT 6 : ALLOTMENT FORM ================= */
@@ -1830,7 +2116,7 @@ function allotBlock(rows,pool,kind,board){
     list.forEach(function(r){
       var d=String(r['Valuation Day']||'Day 1'), s=String(r['Valuation Session']||r['Session']||'FN').toUpperCase();
       var k=(/2/.test(d)?'D2':'D1')+s;
-      slot[k]=(slot[k]?slot[k]+', ':'')+r['Bundle No.'];
+      slot[k]=(slot[k]?slot[k]+', ':'')+bb(r);
       cnt[k]=(cnt[k]||0)+n(r['No. of Papers']);
     });
     var fac=pool.filter(function(x){ return String(x['ID']).trim()===id; })[0]||{};
@@ -1853,9 +2139,11 @@ function allotBlock(rows,pool,kind,board){
 function repAllotment(){
   var pages=boardsToRun().map(function(b){
     var rows=byBoard(R().data,b);
-    return [ secTitle([{t:'Submit to the CoE Office via mail & Hardcopy',cls:'t4'},
-                       {t:CFG.OFFICE||'Office of the Controller of Examinations',cls:'t1'},
-                       {t:'Answer Script Allotment Chart',cls:'t3'}]) ]
+    var ttl=[{t:'Submit to the CoE Office via mail & Hardcopy',cls:'t4'}];
+    if(!LOGO) ttl.push({t:CFG.INSTITUTION||'',cls:'t1'});
+    ttl.push({t:CFG.OFFICE||'Office of the Controller of Examinations',cls:LOGO?'t1':'t2'},
+             {t:'Answer Script Allotment Chart',cls:'t3'});
+    return [ secTitle(ttl) ]
       .concat(allotBlock(rows,R().external,'EXTERNAL',b))
       .concat([secNote(' ')])
       .concat(allotBlock(rows,R().internal,'INTERNAL',b))
@@ -1866,7 +2154,10 @@ function repAllotment(){
 }
 
 /* ================= REPORT 7 : CENTRAL VALUATION CIRCULAR ================= */
+function extDetail(f){ return [f['Name of the Faculty'],f['Designation'],f['Department'],f['College Name'],f['College City'],f['Mobile Number']].filter(Boolean).join(', '); }
+function intDetail(f){ return [f['Name of the Faculty'],f['Designation'],f['Department'],CFG.INSTITUTION].filter(Boolean).join(', '); }
 function repCircular(){
+  var post=(document.getElementById('rpStage').value==='POST');
   var pages=boardsToRun().map(function(b){
     var rows=byBoard(R().data,b);
     var courses={}, order=[];
@@ -1880,25 +2171,31 @@ function repCircular(){
       return [C(i+1,{a:'c'}),C(o.sem,{a:'c'}),C(o.code,{a:'c',b:1}),C(o.name),C(o.scripts,{a:'c'})];
     });
     var total=order.reduce(function(a,c){ return a+courses[c].scripts; },0);
-    while(body.length<12) body.push([C(''),C(''),C(''),C(''),C('')]);
+    if(!body.length) body=[[C(''),C(''),C(''),C(''),C('')]];
     var foot=[[C('Total',{cs:4,b:1,a:'r'}),C(total,{b:1,a:'c'})]];
 
-    var used={}; rows.forEach(function(r){ var id=String(r['Alloted Faculty ID']).trim(); if(id) used[id]=1; });
-    var ids=Object.keys(used);
-    var nExt=ids.filter(function(i){ return /^EXT/i.test(i); }).length, nInt=ids.length-nExt;
-    var exRows=ids.map(function(id,i){
-      var isExt=/^EXT/i.test(id);
-      var f=(isExt?R().external:R().internal).filter(function(x){ return String(x['ID']).trim()===id; })[0]||{};
-      var det=isExt
-        ? [f['Name of the Faculty'],f['Designation'],f['Department'],f['College Name'],f['College City'],f['Mobile Number']]
-            .filter(Boolean).join(', ')
-        : [f['Name of the Faculty'],f['Designation'],f['Department'],CFG.INSTITUTION].filter(Boolean).join(', ');
-      return [C((isExt?'EV ':'IV ')+(i+1),{a:'c'}),C(det||id)];
-    });
-    if(!exRows.length) exRows=[[C('EV 1',{a:'c'}),C('')],[C('EV 2',{a:'c'}),C('')]];
+    var exRows=[], nInt=0, nExt=0;
+    if(post){                                            // stage 2: examiners actually allotted by the HoD
+      var used={}; rows.forEach(function(r){ var id=String(r['Alloted Faculty ID']).trim(); if(id) used[id]=1; });
+      var ids=Object.keys(used).sort();
+      var eIds=ids.filter(function(i){ return /^EXT/i.test(i); }), iIds=ids.filter(function(i){ return !/^EXT/i.test(i); });
+      nExt=eIds.length; nInt=iIds.length;
+      eIds.forEach(function(id,i){
+        var f=R().external.filter(function(x){ return String(x['ID']).trim()===id; })[0]||{};
+        exRows.push([C('EV '+(i+1),{a:'c'}),C(extDetail(f)||id)]); });
+      iIds.forEach(function(id,i){
+        var f=R().internal.filter(function(x){ return String(x['ID']).trim()===id; })[0]||{};
+        exRows.push([C('IV '+(i+1),{a:'c'}),C(intDetail(f)||id)]); });
+    } else {                                             // stage 1: external list of the board + manual internal count
+      var ext=R().external.filter(function(e){ return b==='ALL'||String(e['Board']).trim()===b; });
+      nExt=ext.length; nInt=n(INT_MANUAL[b]);
+      ext.forEach(function(f,i){ exRows.push([C('EV '+(i+1),{a:'c'}),C(extDetail(f))]); });
+      for(var k=0;k<nInt;k++) exRows.push([C('IV '+(k+1),{a:'c'}),C('Internal faculty - to be nominated by the Board Chairman')]);
+    }
+    if(!exRows.length) exRows=[[C('',{a:'c'}),C('')]];
 
     return [ secMeta([['**Ref: '+(CFG.CIRCULAR_REF||'')+'**','**Date: **'+valDate()]]),
-             secTitle([{t:'Central Valuation for UG – '+(CFG.EXAM_TITLE||'End Semester Examinations'),cls:'t2'}]),
+             secTitle(headLines('Central Valuation for UG – '+(CFG.EXAM_TITLE||'End Semester Examinations')).filter(function(l){ return l.cls!=='t4'; })),
              secNote('The Central Valuation for II Year & III Year UG End Semester Examinations (Descriptive type) '+
                      'is scheduled on '+(valDate()||'__________')+'. The list of courses and examiners appointed for '+
                      'the '+b+' board for the Central Valuation is given below:'),
@@ -1907,17 +2204,17 @@ function repCircular(){
              secKV([['Total Number of Answer Script',total],
                     ['Number of Internal Examiner',nInt],
                     ['Number of External Examiner',nExt],
-                    ['Total Number of Examiner',ids.length]]),
+                    ['Total Number of Examiner',nInt+nExt]]),
              secTable([[C('S. No'),C('Sem'),C('Course Code'),C('Course Name'),C('Number of Answer Scripts')]],
                       body,[8,8,14,50,20],foot),
              secNote('**Encl: Examiner List**'),
              secSigns(['Deputy Controller of Examinations','Controller of Examinations','Principal']),
              secBreak(),
-             secTitle([{t:'Examiner List',cls:'t3'},{t:'Board : '+b,cls:'t4'}]),
+             secTitle([{t:'Examiner List',cls:'t3'},{t:'Board : '+b+(post?'':'  (before allotment)'),cls:'t4'}]),
              secTable([[C('Examiner id'),C('Examiner Details')]],exRows,[14,86]),
              secSigns(['Deputy Controller of Examinations','Controller of Examinations','Principal']) ];
   });
-  return {file:'CentralValuationCircular_'+boardFilter(), sheet:'Circular', orientation:'portrait',
+  return {file:'CentralValuationCircular_'+(post?'Stage2_':'Stage1_')+boardFilter(), sheet:'Circular', orientation:'portrait',
           widths:[8,8,14,50,20], pages:pages};
 }
 
@@ -1925,7 +2222,7 @@ function repCircular(){
 function repChairman(){
   var pages=boardsToRun().map(function(b){
     var rows=byBoard(R().data,b);
-    var head=[[C('Bundle ID No.'),C('Course Code'),C('Course Name'),C('Packet No.'),C('No. of Booklets'),
+    var head=[[C('Board Bundle ID No.'),C('Course Code'),C('Course Name'),C('Packet No.'),C('No. of Booklets'),
                C('Foil card No.'),C('Examiner Name, College'),C('Int./Ext.'),C('Session FN'),C('Session AN')]];
     var body=rows.map(function(r,i){
       var id=String(r['Alloted Faculty ID']).trim();
@@ -1933,7 +2230,7 @@ function repChairman(){
       var f=(isExt?R().external:R().internal).filter(function(x){ return String(x['ID']).trim()===id; })[0]||{};
       var who=id?((f['Name of the Faculty']||r['Faculty Name']||'')+(f['College Name']?', '+f['College Name']:'')):'';
       var ses=String(r['Valuation Session']||'').toUpperCase();
-      return [C(i+1,{a:'c'}),C(r['Course Code'],{b:1,a:'c'}),C(r['Course Name']),C(r['Bundle No.'],{a:'c',b:1}),
+      return [C(bb(r),{a:'c',b:1}),C(r['Course Code'],{b:1,a:'c'}),C(r['Course Name']),C(r['Bundle No.'],{a:'c'}),
         C(r['No. of Papers'],{a:'c',b:1}),C(r['Foilcard No.'],{a:'c'}),C(who),
         C(id?(isExt?'Ext.':'Int.'):'',{a:'c'}),C(ses==='FN'?'\u2713':'',{a:'c'}),C(ses==='AN'?'\u2713':'',{a:'c'})];
     });
@@ -1943,7 +2240,7 @@ function repChairman(){
     var plan={};
     rows.forEach(function(r){
       var d=String(r['Valuation Day']||'Day 1'), s=String(r['Valuation Session']||'FN').toUpperCase();
-      var k=d+'|'+s; (plan[k]=plan[k]||[]).push(r['S.No.']);
+      var k=d+'|'+s; (plan[k]=plan[k]||[]).push(bb(r));
     });
     var sumBody=[];
     ['Day 1','Day 2','Day 3','Day 4'].forEach(function(d){
@@ -1954,28 +2251,166 @@ function repChairman(){
     });
     return [ secTitle(headLines('Chairman Form — Answer script allotment Work Out Chart')),
              secMeta([['**BOARD : '+b+'**','**DATE : **'+valDate()]]),
-             secTable(head,body,[7,9,26,7,8,8,20,6,4.5,4.5],foot),
+             secTable(head,body,[10,9,24,7,8,10,18,6,4.5,4.5],foot),
              secNote('**Total No. of Packets: '+rows.length+'        Total Booklets: '+books+'**'),
              secTitle([{t:'Summary – Valuation Bundle: Session wise Allotment',cls:'t3'}]),
-             secTable([[C('Day'),C('Session'),C('S.No. of Bundle (Eg. 2, 6, 7…)'),C('Total No. of Packets')]],
+             secTable([[C('Day'),C('Session'),C('Board Bundle Nos. (Eg. CSE-002, CSE-006…)'),C('Total No. of Packets')]],
                       sumBody,[12,12,58,18]),
              secNote('Over All Total Packets: '+rows.length),
              secSigns(['','Signature of the Board Chairman: ______________________']) ];
   });
   return {file:'ChairmanWorkoutChart_'+boardFilter(), sheet:'Chairman', orientation:'landscape',
-          widths:[7,9,26,7,8,8,20,6,4.5,4.5], pages:pages};
+          widths:[10,9,24,7,8,10,18,6,4.5,4.5], pages:pages};
 }
+
+/* ===================================================================================
+ *                        C L A I M S   E N G I N E
+ *  Valuation (A) + DA (B) + TA (T, college-wise) + Sitting fee (C) = Gross ; less TDS = Net
+ * =================================================================================== */
+function amt(v){ var x=parseFloat(String(v===undefined||v===null?'':v).replace(/[^0-9.\-]/g,'')); return isNaN(x)?0:x; }
+function money(x){ x=Math.round((x||0)*100)/100; return (x%1===0)?String(x):x.toFixed(2); }
+function inr(x){ return (Math.round((x||0)*100)/100).toLocaleString('en-IN',{maximumFractionDigits:2}); }
+function lc(v){ return String(v||'').trim().toLowerCase(); }
+
+/* TA of an external examiner: TA chart by College Code, then College Name, then City; else the default TA */
+function taFor(ex){
+  if(!ex) return amt(CFG.TA_DEFAULT||0);
+  var code=lc(ex['College Code']), nm=lc(ex['College Name']), city=lc(ex['College City']), hit=null;
+  var by=function(f){ return TA.filter(f)[0]; };
+  if(code) hit=by(function(r){ return lc(r['College Code'])===code && String(r['TA Amount']).trim()!==''; });
+  if(!hit&&nm) hit=by(function(r){ return lc(r['College Name'])===nm && String(r['TA Amount']).trim()!==''; });
+  if(!hit&&city) hit=by(function(r){ return !lc(r['College Name']) && lc(r['College City'])===city && String(r['TA Amount']).trim()!==''; });
+  return hit?amt(hit['TA Amount']):amt(CFG.TA_DEFAULT||0);
+}
+function calcClaim(ex,bundles,isExt){
+  var rate=amt(CFG.RATE_PER_SCRIPT||20), minc=amt(CFG.MIN_CLAIM||0);
+  var scripts=bundles.reduce(function(a,r){ return a+n(r['No. of Papers']); },0);
+  var days={}; bundles.forEach(function(r){ if(r['Valuation Day']) days[r['Valuation Day']]=1; });
+  var nDays=Object.keys(days).length||1, has=bundles.length>0;
+  var perDay=String(CFG.TA_BASIS||'PER_DAY').toUpperCase()!=='PER_VISIT';
+  var taRate=isExt?taFor(ex):amt(CFG.INTERNAL_TA||0);
+  var A=scripts?Math.max(scripts*rate,minc):0;
+  var B=(has&&isExt)?amt(CFG.DA_PER_DAY||0)*nDays:0;   // DA is for external examiners only; internal = 0
+  var T=has?taRate*(perDay?nDays:1):0;
+  var Cc=has?amt(CFG.SITTING_FEE||0):0;
+  var gross=A+B+T+Cc, tds=Math.round(gross*amt(CFG.TDS_PERCENT||0)/100);
+  return {scripts:scripts,bundles:bundles.length,days:nDays,perDay:perDay,taRate:taRate,A:A,B:B,T:T,C:Cc,gross:gross,tds:tds,net:gross-tds};
+}
+function claimGroups(board){
+  var rows=byBoard(R().data,board), by={}, order=[];
+  rows.forEach(function(r){ var id=String(r['Alloted Faculty ID']).trim(); if(!id) return;
+    if(!by[id]){ by[id]=[]; order.push(id); } by[id].push(r); });
+  return order.map(function(id){
+    var isExt=/^EXT/i.test(id), pool=isExt?R().external:R().internal;
+    var ex=pool.filter(function(x){ return String(x['ID']).trim()===id; })[0]||{ID:id,'Name of the Faculty':by[id][0]['Faculty Name']};
+    var bs={}; by[id].forEach(function(r){ bs[r['Board']]=1; });
+    return {id:id,isExt:isExt,ex:ex,name:ex['Name of the Faculty']||by[id][0]['Faculty Name']||id,
+            boards:Object.keys(bs).sort().join(', '),c:calcClaim(ex,by[id],isExt)};
+  }).sort(function(a,b){ return a.id<b.id?-1:1; });
+}
+function sumClaims(list){
+  var t={n:list.length,bundles:0,scripts:0,A:0,B:0,T:0,C:0,gross:0,tds:0,net:0};
+  list.forEach(function(g){ ['bundles','scripts','A','B','T','C','gross','tds','net'].forEach(function(k){ t[k]+=g.c[k]; }); });
+  return t;
+}
+function boardStats(){
+  var set={}; R().data.forEach(function(x){ if(x['Board']) set[x['Board']]=1; });
+  return Object.keys(set).sort().map(function(b){
+    var rows=byBoard(R().data,b), g=claimGroups(b), courses={};
+    var ints=g.filter(function(x){ return !x.isExt; }), exts=g.filter(function(x){ return x.isExt; });
+    rows.forEach(function(r){ courses[r['Course Code']]=1; });
+    var ti=sumClaims(ints), te=sumClaims(exts);
+    return {board:b,courses:Object.keys(courses).length,bundles:rows.length,
+      scripts:rows.reduce(function(a,r){ return a+n(r['No. of Papers']); },0),
+      unall:rows.filter(function(r){ return !String(r['Alloted Faculty ID']).trim(); }).length,
+      ni:ints.length,ne:exts.length,ti:ti,te:te,net:ti.net+te.net};
+  });
+}
+
+var CL_W=[4,7,17,16,8,5,6,4,7,6,6,6,7,5,8];
+function claimHead(isExt){
+  return [[C('S.No.'),C('ID'),C('Name of the Examiner'),C(isExt?'College':'Department'),C('Board'),C('Bundles'),C('Scripts'),C('Days'),
+           C('Valuation (A)'),C('DA (B)'),C('TA (T)'),C('Sitting Fee (C)'),C('Gross'),C('TDS'),C('Net Payable')]];
+}
+function claimBody(list,isExt){
+  if(!list.length) return [[C('No allotted examiners for this selection.',{cs:15,a:'c'})]];
+  return list.map(function(g,i){
+    var c=g.c;
+    return [C(i+1,{a:'c'}),C(g.id,{a:'c'}),C(g.name,{b:1}),
+      C(isExt?[g.ex['College Name'],g.ex['College City']].filter(Boolean).join(', '):(g.ex['Department']||'')),
+      C(g.boards,{a:'c'}),C(c.bundles,{a:'c'}),C(c.scripts,{a:'r'}),C(c.days,{a:'c'}),
+      C(money(c.A),{a:'r'}),C(money(c.B),{a:'r'}),C(money(c.T),{a:'r'}),C(money(c.C),{a:'r'}),
+      C(money(c.gross),{a:'r'}),C(money(c.tds),{a:'r'}),C(money(c.net),{a:'r',b:1})];
+  });
+}
+function claimFoot(t,label){
+  return [[C(label,{cs:5,b:1,a:'r'}),C(t.bundles,{b:1,a:'c'}),C(t.scripts,{b:1,a:'r'}),C('',{}),
+           C(money(t.A),{b:1,a:'r'}),C(money(t.B),{b:1,a:'r'}),C(money(t.T),{b:1,a:'r'}),C(money(t.C),{b:1,a:'r'}),
+           C(money(t.gross),{b:1,a:'r'}),C(money(t.tds),{b:1,a:'r'}),C(money(t.net),{b:1,a:'r'})]];
+}
+function repClaim(kind,board){
+  var g=claimGroups(board), ints=g.filter(function(x){ return !x.isExt; }), exts=g.filter(function(x){ return x.isExt; });
+  var ttl={INT:'Internal Examiners',EXT:'External Examiners',ALL:'Internal and External Examiners'}[kind];
+  var ti=sumClaims(ints), te=sumClaims(exts), tt=sumClaims(g);
+  var sections=[secTitle(headLines('Examiner Claim Statement — '+ttl)),
+    secMeta([['**Board : **'+(board==='ALL'?'All Boards':board),'**Date : **'+(valDate()||fmtDate(new Date().toISOString()))]])];
+  if(kind!=='EXT'){
+    sections.push(secTitle([{t:(kind==='ALL'?'A. ':'')+'Internal Examiners',cls:'t3'}]));
+    sections.push(secTable(claimHead(false),claimBody(ints,false),CL_W,claimFoot(ti,'Total - Internal')));
+  }
+  if(kind!=='INT'){
+    sections.push(secTitle([{t:(kind==='ALL'?'B. ':'')+'External Examiners',cls:'t3'}]));
+    sections.push(secTable(claimHead(true),claimBody(exts,true),CL_W,claimFoot(te,'Total - External')));
+  }
+  if(kind==='ALL'){
+    var sh=[[C('Category'),C('Examiners'),C('Bundles'),C('Scripts'),C('Valuation (A)'),C('DA (B)'),C('TA (T)'),C('Sitting Fee (C)'),C('Gross'),C('TDS'),C('Net Payable')]];
+    var line=function(lbl,t,bold){ return [C(lbl,{b:bold}),C(t.n,{a:'c'}),C(t.bundles,{a:'c'}),C(t.scripts,{a:'r'}),C(money(t.A),{a:'r'}),C(money(t.B),{a:'r'}),
+      C(money(t.T),{a:'r'}),C(money(t.C),{a:'r'}),C(money(t.gross),{a:'r'}),C(money(t.tds),{a:'r'}),C(money(t.net),{a:'r',b:1})]; };
+    sections.push(secTitle([{t:'C. Consolidated Summary (Internal + External)',cls:'t3'}]));
+    sections.push(secTable(sh,[line('Internal examiners',ti),line('External examiners',te)],[16,8,8,8,10,8,8,10,9,7,10],
+      [[C('Grand Total',{b:1}),C(tt.n,{b:1,a:'c'}),C(tt.bundles,{b:1,a:'c'}),C(tt.scripts,{b:1,a:'r'}),C(money(tt.A),{b:1,a:'r'}),C(money(tt.B),{b:1,a:'r'}),
+        C(money(tt.T),{b:1,a:'r'}),C(money(tt.C),{b:1,a:'r'}),C(money(tt.gross),{b:1,a:'r'}),C(money(tt.tds),{b:1,a:'r'}),C(money(tt.net),{b:1,a:'r'})]]));
+  }
+  sections.push(secSigns(['Prepared by','Deputy Controller of Examinations','Controller of Examinations']));
+  return {file:'ClaimStatement_'+kind+'_'+board, sheet:'Claims', orientation:'landscape', fs:9, tfs:8, widths:CL_W, sections:sections};
+}
+function repClaimBoard(){
+  var st=boardStats();
+  var head=[[C('S.No.'),C('Board'),C('Courses'),C('Bundles'),C('Scripts'),C('Unallotted Bundles'),C('Internal Examiners'),C('External Examiners'),
+             C('Internal Net'),C('External Net'),C('Total Net Claim'),C('Avg. per Script')]];
+  var body=st.map(function(x,i){
+    return [C(i+1,{a:'c'}),C(x.board,{a:'c',b:1}),C(x.courses,{a:'c'}),C(x.bundles,{a:'c'}),C(x.scripts,{a:'r'}),C(x.unall,{a:'c'}),C(x.ni,{a:'c'}),C(x.ne,{a:'c'}),
+      C(money(x.ti.net),{a:'r'}),C(money(x.te.net),{a:'r'}),C(money(x.net),{a:'r',b:1}),C(x.scripts?money(x.net/x.scripts):'',{a:'r'})];
+  });
+  if(!body.length) body=[[C('No bundles generated yet.',{cs:12,a:'c'})]];
+  var tot=st.reduce(function(a,x){ a.c+=x.courses; a.b+=x.bundles; a.s+=x.scripts; a.u+=x.unall; a.i+=x.ni; a.e+=x.ne; a.ti+=x.ti.net; a.te+=x.te.net; a.n+=x.net; return a; },{c:0,b:0,s:0,u:0,i:0,e:0,ti:0,te:0,n:0});
+  var foot=[[C('Total',{cs:2,b:1,a:'r'}),C(tot.c,{b:1,a:'c'}),C(tot.b,{b:1,a:'c'}),C(tot.s,{b:1,a:'r'}),C(tot.u,{b:1,a:'c'}),C(tot.i,{b:1,a:'c'}),C(tot.e,{b:1,a:'c'}),
+             C(money(tot.ti),{b:1,a:'r'}),C(money(tot.te),{b:1,a:'r'}),C(money(tot.n),{b:1,a:'r'}),C(tot.s?money(tot.n/tot.s):'',{b:1,a:'r'})]];
+  var w=[5,9,8,8,9,10,10,10,11,11,12,9];
+  return {file:'BoardwiseClaimSummary', sheet:'BoardSummary', orientation:'landscape', widths:w,
+    sections:[secTitle(headLines('Board-wise Valuation & Claim Summary')),
+              secMeta([['**Examination : **'+(CFG.EXAM_TITLE||''),'**Date : **'+fmtDate(new Date().toISOString())]]),
+              secTable(head,body,w,foot),
+              secSigns(['Prepared by','Controller of Examinations'])]};
+}
+function repClaimInt(){ return repClaim('INT',boardFilter()); }
+function repClaimExt(){ return repClaim('EXT',boardFilter()); }
+function repClaimAll(){ return repClaim('ALL',boardFilter()); }
 
 /* ---------- report catalogue ---------- */
 var REPORTS=[
   {k:'proforma', ic:'&#128203;', n:'Proforma', d:'Master examination proforma — counts, QP code, foilcard, dummy range and the answer-booklet break-up.', f:repProforma},
-  {k:'checklist',ic:'&#9989;',   n:'Check List', d:'Bundle-wise verification sheet with foilcard, dummy range, booklet count and the OMR tick columns.', f:repCheckList},
+  {k:'checklist',ic:'&#9989;',   n:'Check List', d:'Bundle-wise verification sheet with Board Bundle No., foilcard, dummy range, booklet count and the OMR tick columns.', f:repCheckList},
   {k:'feedback', ic:'&#128172;', n:'Feedback Form', d:'External examiner feedback form, one page per examiner, pre-filled with name, board and college.', f:repFeedback},
   {k:'issue',    ic:'&#128221;', n:'Issue Register', d:'Issue register cum claim sheet per examiner, with DA/TA and sitting fee worked out.', f:repIssueRegister},
-  {k:'tabul',    ic:'&#128290;', n:'Tabulation Valuation', d:'Board tabulation of answer scripts — foilcard, dummy numbers and the mark-correction columns.', f:repTabulation},
+  {k:'tabul',    ic:'&#128290;', n:'Tabulation Valuation', d:'Board tabulation of answer scripts — Board Bundle No., foilcard, dummy numbers and the mark-correction columns.', f:repTabulation},
   {k:'allot',    ic:'&#128100;', n:'Allotment Form', d:'External and internal evaluator allotment charts, day and session wise with script totals.', f:repAllotment},
   {k:'circ',     ic:'&#128236;', n:'Central Valuation Circular', d:'Office circular with the course list, script count, examiner strength and the examiner annexure.', f:repCircular},
-  {k:'chair',    ic:'&#128081;', n:'Chairman Workout Chart', d:'Packet-wise work-out chart for the board chairman plus the session-wise bundle summary.', f:repChairman}
+  {k:'chair',    ic:'&#128081;', n:'Chairman Workout Chart', d:'Packet-wise work-out chart for the board chairman plus the session-wise bundle summary.', f:repChairman},
+  {k:'claimint', ic:'&#128176;', n:'Claim Statement - Internal', d:'Internal examiners: valuation, DA, TA, sitting fee, TDS and net payable, with totals.', f:repClaimInt},
+  {k:'claimext', ic:'&#127891;', n:'Claim Statement - External', d:'External examiners with college-wise TA from the TA chart, with totals.', f:repClaimExt},
+  {k:'claimall', ic:'&#129534;', n:'Claim Statement - Combined', d:'Internal and external separately with sub-totals and a consolidated grand total.', f:repClaimAll},
+  {k:'claimbrd', ic:'&#128202;', n:'Board-wise Claim Summary', d:'Scripts, unallotted bundles, examiners and claim amount for every board.', f:repClaimBoard}
 ];
 function buildReportCards(){
   document.getElementById('repGrid').innerHTML=REPORTS.map(function(r){
@@ -2001,6 +2436,301 @@ window.runReport=function(key,fmt){
   };
   if(!REPORT) loadReportData().then(fire); else fire();
 };
+
+/* ===================================================================================
+ *                         R E V A L U A T I O N
+ *  Dummy number(s) -> Board Bundle No., Foilcard No., Course Code, Course Name
+ * =================================================================================== */
+var REVAL=[], RV_FILE=[];
+function rvInputs(){
+  var t=(document.getElementById('rvText').value||'').split(/[\s,;]+/).filter(Boolean);
+  var seen={};
+  return t.concat(RV_FILE).filter(function(x){ if(seen[x]) return false; seen[x]=1; return true; });
+}
+function rvLookup(){
+  var list=rvInputs();
+  if(!list.length){ REVAL=[]; renderReval(); return; }
+  var b=document.getElementById('rvGo'); busy(b,true,'Searching');
+  api({action:'revalLookup',dummies:list}).then(function(r){
+    if(!r.ok) throw new Error(r.error); REVAL=r.rows||[]; renderReval();
+    var miss=REVAL.filter(function(x){ return !x.found; }).length;
+    if(miss) toast(miss+' dummy number(s) were not found in any bundle.','warn');
+  }).catch(function(e){ toast(e.message,'err'); }).finally(function(){ busy(b,false); });
+}
+function rvGroups(){
+  var g={}, order=[];
+  REVAL.forEach(function(x){
+    if(!x.found) return;
+    var k=x.boardBundle||('B|'+x.code+'|'+x.bundle);
+    if(!g[k]){ g[k]={bb:x.boardBundle,foil:x.foilcard,code:x.code,name:x.name,board:x.board,bundle:x.bundle,
+                     from:x.dummyFrom,to:x.dummyTo,list:[]}; order.push(k); }
+    g[k].list.push(x.dummy);
+  });
+  return order.map(function(k){ return g[k]; });
+}
+function renderReval(){
+  document.getElementById('rvCount').textContent=REVAL.length;
+  var found=REVAL.filter(function(x){ return x.found; }).length;
+  var groups=rvGroups();
+  document.getElementById('rvSummary').innerHTML=REVAL.length
+    ?'<div class="note '+(found===REVAL.length?'s':'w')+'"><b>'+found+'</b> of <b>'+REVAL.length+'</b> dummy numbers located in <b>'+groups.length+'</b> bundle(s).</div>':'';
+  var t=document.getElementById('rvTable');
+  if(!REVAL.length){ t.innerHTML='<tbody><tr><td class="empty"><span class="e">&#128260;</span>Enter or upload dummy numbers.</td></tr></tbody>'; return; }
+  var h='<thead><tr><th class="c">#</th><th>Dummy No.</th><th>Board Bundle No.</th><th>Foilcard No.</th>'+
+    '<th>Course Code</th><th>Course Name</th><th>Board</th><th>Date</th><th class="c">Session</th></tr></thead><tbody>';
+  REVAL.forEach(function(x,i){
+    h+=x.found
+      ? '<tr><td class="c">'+(i+1)+'</td><td><b>'+esc(x.dummy)+'</b></td><td><span class="pill inf">'+esc(x.boardBundle)+'</span></td>'+
+        '<td>'+esc(x.foilcard)+'</td><td><b>'+esc(x.code)+'</b></td><td>'+esc(x.name)+'</td><td>'+esc(x.board)+'</td>'+
+        '<td>'+fmtDate(x.date)+'</td><td class="c">'+esc(x.session)+'</td></tr>'
+      : '<tr><td class="c">'+(i+1)+'</td><td><b>'+esc(x.dummy)+'</b></td><td colspan="7"><span class="pill err">not found in any bundle</span></td></tr>';
+  });
+  t.innerHTML=h+'</tbody>';
+}
+var rvTimer; document.getElementById('rvText').oninput=function(){ clearTimeout(rvTimer); rvTimer=setTimeout(rvLookup,700); };
+document.getElementById('rvGo').onclick=rvLookup;
+document.getElementById('rvClear').onclick=function(){
+  document.getElementById('rvText').value=''; RV_FILE=[]; REVAL=[];
+  document.getElementById('rvFileMsg').innerHTML=''; renderReval(); };
+document.getElementById('rvTplX').onclick=function(){
+  xlsxDownload('Template_Revaluation.xlsx',[['Dummy Number'],['1005'],['1042'],['1190']],[18]); toast('Template downloaded.','ok'); };
+document.getElementById('rvTplC').onclick=function(){
+  csvDownload('Template_Revaluation.csv',[['Dummy Number'],['1005'],['1042'],['1190']]); toast('Template downloaded.','ok'); };
+wireDrop('dropRv','fileRv',function(file){
+  parseFile(file).then(function(rows){
+    RV_FILE=rows.map(function(r){
+      var keys=Object.keys(r);
+      var k=keys.filter(function(c){ return /dummy/i.test(c); })[0]||keys[0];
+      return String(r[k]).trim();
+    }).filter(Boolean);
+    document.getElementById('rvFileMsg').innerHTML='<div class="note s"><b>'+RV_FILE.length+'</b> dummy numbers read from <b>'+esc(file.name)+'</b>.</div>';
+    rvLookup();
+  }).catch(function(e){ document.getElementById('rvFileMsg').innerHTML='<div class="note e">'+esc(e.message)+'</div>'; });
+});
+
+function repReval(){
+  var body=REVAL.map(function(x,i){
+    return [C(i+1,{a:'c'}),C(x.dummy,{a:'c',b:1}),C(x.found?x.boardBundle:'Not found',{a:'c',b:1}),C(x.foilcard||'',{a:'c'}),
+      C(x.code||'',{b:1,a:'c'}),C(x.name||''),C(x.board||'',{a:'c'}),C(x.found?fmtDate(x.date):'',{a:'c'}),C(x.session||'',{a:'c'})];
+  });
+  var head=[[C('S.No.'),C('Dummy No.'),C('Board Bundle No.'),C('Foilcard No.'),C('Course Code'),C('Course Name'),C('Board'),C('Exam Date'),C('Session')]];
+  var widths=[6,10,14,16,12,28,8,10,8];
+  var found=REVAL.filter(function(x){ return x.found; }).length;
+  var groups=rvGroups();
+  var gBody=groups.map(function(g,i){
+    return [C(i+1,{a:'c'}),C(g.bb,{a:'c',b:1}),C(g.foil,{a:'c'}),C(g.code,{a:'c',b:1}),C(g.name),
+            C(g.from+' - '+g.to,{a:'c'}),C(g.list.join(', ')),C(g.list.length,{a:'c',b:1})];
+  });
+  var gHead=[[C('S.No.'),C('Board Bundle No.'),C('Foilcard No.'),C('Course Code'),C('Course Name'),C('Bundle Dummy Range'),C('Dummy Nos. Applied'),C('Count')]];
+  var sections=[secTitle(LOGO?[{t:CFG.OFFICE||'Office of the Controller of Examinations',cls:'t1'},
+                               {t:CFG.EXAM_TITLE||'',cls:'t4'},{t:'Revaluation — Dummy Number Bundle Locator',cls:'t3'}]
+                             :[{t:CFG.INSTITUTION||'',cls:'t1'},{t:CFG.OFFICE||'Office of the Controller of Examinations',cls:'t2'},
+                               {t:CFG.EXAM_TITLE||'',cls:'t4'},{t:'Revaluation — Dummy Number Bundle Locator',cls:'t3'}]),
+    secMeta([['**Dummy numbers : **'+REVAL.length+'     **Located : **'+found+'     **Not found : **'+(REVAL.length-found),
+              '**Date : **'+fmtDate(new Date().toISOString())]]),
+    secTable(head,body,widths)];
+  if(groups.length){
+    sections.push(secTitle([{t:'Bundle-wise Summary',cls:'t3'}]));
+    sections.push(secTable(gHead,gBody,[6,14,16,12,24,14,24,6]));
+  }
+  sections.push(secSigns(['Prepared by','Controller of Examinations']));
+  return {file:'Revaluation_Bundle_Report',sheet:'Revaluation',orientation:'landscape',widths:[6,14,16,12,26,14,24,10,8],sections:sections};
+}
+function rvOut(fmt){
+  if(!REVAL.length){ toast('Look up some dummy numbers first.','warn'); return; }
+  var s=repReval(); if(fmt==='x') outExcel(s); else if(fmt==='w') outWord(s); else outPDF(s);
+}
+document.getElementById('rvX').onclick=function(){ rvOut('x'); };
+document.getElementById('rvP').onclick=function(){ rvOut('p'); };
+document.getElementById('rvW').onclick=function(){ rvOut('w'); };
+renderReval();
+
+/* ===================================================================================
+ *            C I R C U L A R   -   manual internal examiner count (stage 1)
+ * =================================================================================== */
+var INT_MANUAL={}; try{ INT_MANUAL=JSON.parse(localStorage.getItem('ep_intcount')||'{}')||{}; }catch(e){ INT_MANUAL={}; }
+function buildIntGrid(){
+  var box=document.getElementById('intGrid'); if(!box) return;
+  var sig=BOARDS.join('|'); if(box.dataset.sig===sig) return; box.dataset.sig=sig;
+  box.innerHTML=BOARDS.length?BOARDS.map(function(b){
+    return '<div style="flex:0 1 180px"><label class="lb">Internal examiners &mdash; '+esc(b)+'</label>'+
+      '<input class="inp" type="number" min="0" data-int="'+esc(b)+'" value="'+esc(INT_MANUAL[b]||'')+'" placeholder="0"></div>'; }).join('')
+    :'<small style="color:var(--dim)">Boards appear here once the course schedule is loaded.</small>';
+  box.querySelectorAll('[data-int]').forEach(function(el){
+    el.oninput=function(){ INT_MANUAL[el.dataset.int]=n(el.value); try{ localStorage.setItem('ep_intcount',JSON.stringify(INT_MANUAL)); }catch(e){} };
+  });
+}
+document.getElementById('rpStage').onchange=function(){ document.getElementById('intWrap').style.display=this.value==='PRE'?'':'none'; };
+
+/* ===================================================================================
+ *                         T A   C H A R T   (Settings)
+ * =================================================================================== */
+var TA_COLS=['College Code','College Name','College City','Distance (KM)','TA Amount','Remarks'];
+function renderTA(){
+  var q=(document.getElementById('taSearch').value||'').toLowerCase();
+  var rows=TA.filter(function(r){ return !q||TA_COLS.map(function(c){ return r[c]; }).join(' ').toLowerCase().indexOf(q)>-1; });
+  document.getElementById('taCount').textContent=rows.length+' / '+TA.length;
+  var t=document.getElementById('taTable');
+  if(!rows.length){ t.innerHTML='<tbody><tr><td class="empty"><span class="e">&#128663;</span>No colleges in the TA chart yet. Upload it, add one, or pull the colleges of your external examiners.</td></tr></tbody>'; return; }
+  var h='<thead><tr><th style="width:34px"><input type="checkbox" id="taAll"></th>'+
+    TA_COLS.map(function(c){ return '<th'+((c==='TA Amount'||c==='Distance (KM)')?' class="n"':'')+'>'+c+'</th>'; }).join('')+'<th class="c">Edit</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    h+='<tr><td><input type="checkbox" class="taChk" data-row="'+r._row+'"></td><td>'+esc(r['College Code'])+'</td><td><b>'+esc(r['College Name'])+'</b></td>'+
+      '<td>'+esc(r['College City'])+'</td><td class="n">'+esc(r['Distance (KM)'])+'</td>'+
+      '<td class="n">'+(String(r['TA Amount']).trim()===''?'<span class="pill warn">not set</span>':'<b>'+esc(r['TA Amount'])+'</b>')+'</td>'+
+      '<td>'+esc(r['Remarks'])+'</td><td class="c"><button class="btn g sm" onclick="editTa('+r._row+')">&#9998;</button></td></tr>';
+  });
+  t.innerHTML=h+'</tbody>';
+  var all=document.getElementById('taAll');
+  if(all) all.onclick=function(){ document.querySelectorAll('.taChk').forEach(function(c){ c.checked=all.checked; }); };
+}
+document.getElementById('taSearch').oninput=renderTA;
+function taForm(r){
+  r=r||{};
+  var f=function(lb,id,val,ph){ return '<div style="flex:1 1 170px"><label class="lb">'+lb+'</label><input class="inp" id="ta_'+id+'" value="'+esc(val||'')+'" placeholder="'+esc(ph||'')+'"></div>'; };
+  return '<div class="fr">'+f('College Code','code',r['College Code'])+f('College Name *','name',r['College Name'])+'</div>'+
+    '<div class="fr" style="margin-top:10px">'+f('College City','city',r['College City'])+f('Distance (KM)','km',r['Distance (KM)'])+f('TA Amount (Rs.)','amount',r['TA Amount'])+'</div>'+
+    '<div class="fr" style="margin-top:10px">'+f('Remarks','remarks',r['Remarks'])+'</div>';
+}
+function saveTa(_row){
+  var g=function(i){ return document.getElementById('ta_'+i).value; };
+  var row={_row:_row||'',code:g('code'),name:g('name'),city:g('city'),km:g('km'),amount:g('amount'),remarks:g('remarks')};
+  if(!row.name.trim()&&!row.code.trim()){ toast('College name or code is required.','err'); return false; }
+  api({action:'taSave',row:row}).then(function(r){
+    if(!r.ok) throw new Error(r.error); TA=r.rows||[]; renderTA(); REPORT=null; toast('TA saved.','ok');
+  }).catch(function(e){ toast(e.message,'err'); });
+}
+document.getElementById('taAdd').onclick=function(){
+  modal('Add college TA','The amount is applied to every external examiner of this college.',taForm(null),
+    [{t:'Cancel',c:'g'},{t:'Save',c:'',fn:function(){ return saveTa(''); }}]); };
+window.editTa=function(row){
+  var r=TA.filter(function(x){ return x._row===row; })[0]; if(!r) return;
+  modal('Edit TA - '+esc(r['College Name']||r['College Code']),'',taForm(r),
+    [{t:'Cancel',c:'g'},{t:'Save',c:'',fn:function(){ return saveTa(row); }}]); };
+document.getElementById('taDel').onclick=function(){
+  var rows=[].slice.call(document.querySelectorAll('.taChk:checked')).map(function(c){ return n(c.dataset.row); });
+  if(!rows.length){ toast('Select at least one college.','warn'); return; }
+  modal('Delete colleges','Remove <b>'+rows.length+'</b> college(s) from the TA chart?','',
+    [{t:'Cancel',c:'g'},{t:'Delete',c:'dg',fn:function(){
+      api({action:'taDelete',rowsIndex:rows}).then(function(r){
+        if(!r.ok) throw new Error(r.error); TA=r.rows||[]; renderTA(); REPORT=null; toast('Deleted.','ok');
+      }).catch(function(e){ toast(e.message,'err'); }); }}]);
+};
+var TA_SAMPLE=[TA_COLS,['1234','PSNA College of Engineering','Dindigul','65','800','Sample row - replace'],['2345','Government College of Technology','Coimbatore','210','1500','']];
+document.getElementById('taTplX').onclick=function(){ xlsxDownload('Template_TAChart.xlsx',TA_SAMPLE,[14,38,16,14,12,24]); toast('Template downloaded.','ok'); };
+document.getElementById('taTplC').onclick=function(){ csvDownload('Template_TAChart.csv',TA_SAMPLE); toast('Template downloaded.','ok'); };
+document.getElementById('taExport').onclick=function(){
+  csvDownload('TAChart.csv',[TA_COLS].concat(TA.map(function(r){ return TA_COLS.map(function(c){ return r[c]; }); }))); toast('Exported.','ok'); };
+wireDrop('dropTa','fileTa',function(file){
+  var box=document.getElementById('taUpMsg');
+  box.innerHTML='<div class="note i">Reading <b>'+esc(file.name)+'</b>&hellip;</div>';
+  parseFile(file).then(function(rows){
+    if(!rows.length) throw new Error('The sheet has no data rows.');
+    box.innerHTML='';
+    modal('Upload '+rows.length+' colleges','Append adds new colleges and skips ones already listed. Replace clears the TA chart first.','',
+      [{t:'Cancel',c:'g'},
+       {t:'Replace all',c:'dg',fn:function(){ sendTa(rows,'replace',box); }},
+       {t:'Append',c:'',fn:function(){ sendTa(rows,'append',box); }}]);
+  }).catch(function(e){ box.innerHTML='<div class="note e">'+esc(e.message)+'</div>'; });
+});
+function sendTa(rows,mode,box){
+  box.innerHTML='<div class="note i"><span class="spin2"></span> Uploading&hellip;</div>';
+  api({action:'taBulk',rows:rows,mode:mode}).then(function(r){
+    if(!r.ok) throw new Error(r.error||'Upload failed.');
+    TA=r.rows||[]; renderTA(); REPORT=null;
+    box.innerHTML='<div class="note s"><b>'+r.inserted+'</b> rows processed ('+mode+').</div>'; toast('TA chart updated.','ok');
+  }).catch(function(e){ box.innerHTML='<div class="note e">'+esc(e.message)+'</div>'; });
+}
+document.getElementById('taSync').onclick=function(){
+  var have={}, seen={}, add=[];
+  TA.forEach(function(r){ have[lc(r['College Code'])+'|'+lc(r['College Name'])]=1; });
+  EXAM.EXTERNAL.forEach(function(e){
+    var k=lc(e['College Code'])+'|'+lc(e['College Name']);
+    if(k==='|'||have[k]||seen[k]) return; seen[k]=1;
+    add.push({'College Code':e['College Code'],'College Name':e['College Name'],'College City':e['College City'],'Distance (KM)':'','TA Amount':'','Remarks':''});
+  });
+  if(!add.length){ toast('Every external examiner college is already in the TA chart.','ok'); return; }
+  api({action:'taBulk',rows:add,mode:'append'}).then(function(r){
+    if(!r.ok) throw new Error(r.error); TA=r.rows||[]; renderTA();
+    toast(add.length+' college(s) added. Now fill in their TA amounts.','ok');
+  }).catch(function(e){ toast(e.message,'err'); });
+};
+
+/* ===================================================================================
+ *                       C L A I M S   &   A N A L Y S I S   (page)
+ * =================================================================================== */
+function runSpec(spec,fmt){ if(fmt==='excel') outExcel(spec); else if(fmt==='word') outWord(spec); else outPDF(spec); }
+window.claimOut=function(kind,fmt){
+  if(!REPORT){ loadReportData().then(function(){ claimOut(kind,fmt); }); return; }
+  var b=document.getElementById('clBoard').value||'ALL';
+  runSpec(kind==='BOARD'?repClaimBoard():repClaim(kind,b),fmt);
+};
+function loadClaims(){
+  if(!REPORT) loadReportData().then(renderClaims); else renderClaims();
+}
+function renderClaims(){
+  var b=document.getElementById('clBoard').value||'ALL';
+  var g=claimGroups(b), ints=g.filter(function(x){ return !x.isExt; }), exts=g.filter(function(x){ return x.isExt; });
+  var ti=sumClaims(ints), te=sumClaims(exts), tt=sumClaims(g);
+  var rows=byBoard(R().data,b);
+  var scripts=rows.reduce(function(a,r){ return a+n(r['No. of Papers']); },0);
+  var unall=rows.filter(function(r){ return !String(r['Alloted Faculty ID']).trim(); });
+  var missTA=[]; exts.forEach(function(x){ if(x.c.taRate===0) missTA.push(x.name); });
+  var msg='';
+  if(String(CFG.DA_TA_SPLIT_CONFIRMED||'NO').toUpperCase()!=='YES') msg+='<div class="note w"><b>DA / TA not confirmed.</b> Make sure DA per day is DA only (TA is separate), then press Save configuration in Settings.</div>';
+  if(!rows.length) msg+='<div class="note w">No bundles generated yet &mdash; generate the bundles first.</div>';
+  if(unall.length) msg+='<div class="note w"><b>'+unall.length+'</b> bundle(s) are still unallotted, so their claims are not included yet.</div>';
+  if(missTA.length) msg+='<div class="note w"><b>'+missTA.length+'</b> external examiner(s) have no TA amount (college not in the TA chart and no default TA): '+esc(missTA.slice(0,6).join(', '))+(missTA.length>6?' &hellip;':'')+'. Add them under Settings &rarr; TA chart.</div>';
+  document.getElementById('clMsg').innerHTML=msg;
+
+  document.getElementById('clStats').innerHTML=
+    stat('Bundles',rows.length,unall.length+' unallotted')+
+    stat('Scripts allotted',tt.scripts.toLocaleString('en-IN'),'of '+scripts.toLocaleString('en-IN')+' in the data')+
+    stat('Internal claim','Rs. '+inr(ti.net),ints.length+' examiner(s)')+
+    stat('External claim','Rs. '+inr(te.net),exts.length+' examiner(s)')+
+    stat('Combined claim','Rs. '+inr(tt.net),'gross Rs. '+inr(tt.gross))+
+    stat('TA payable','Rs. '+inr(tt.T),'external Rs. '+inr(te.T))+
+    stat('DA + sitting fee','Rs. '+inr(tt.B+tt.C),'DA Rs. '+inr(tt.B)+' + sitting Rs. '+inr(tt.C))+
+    stat('Average per script',tt.scripts?'Rs. '+inr(tt.net/tt.scripts):'—','net claim / scripts valued');
+
+  var sumRow=function(l,t,bold){ return '<tr'+(bold?' style="font-weight:700;background:var(--hov)"':'')+'><td>'+l+'</td><td class="n">'+t.n+'</td><td class="n">'+t.bundles+'</td><td class="n">'+t.scripts+
+    '</td><td class="n">'+inr(t.A)+'</td><td class="n">'+inr(t.B)+'</td><td class="n">'+inr(t.T)+'</td><td class="n">'+inr(t.C)+'</td><td class="n">'+inr(t.gross)+
+    '</td><td class="n">'+inr(t.tds)+'</td><td class="n"><b>'+inr(t.net)+'</b></td></tr>'; };
+  document.getElementById('clSummary').innerHTML='<thead><tr><th>Category</th><th class="n">Examiners</th><th class="n">Bundles</th><th class="n">Scripts</th><th class="n">Valuation (A)</th>'+
+    '<th class="n">DA (B)</th><th class="n">TA (T)</th><th class="n">Sitting (C)</th><th class="n">Gross</th><th class="n">TDS</th><th class="n">Net payable</th></tr></thead><tbody>'+
+    sumRow('Internal',ti)+sumRow('External',te)+sumRow('Combined',tt,true)+'</tbody>';
+
+  var st=boardStats();
+  document.getElementById('clBoardTbl').innerHTML=st.length?'<thead><tr><th>Board</th><th class="n">Courses</th><th class="n">Bundles</th><th class="n">Scripts</th><th class="n">Unallotted</th>'+
+    '<th class="n">Internal</th><th class="n">External</th><th class="n">Internal net</th><th class="n">External net</th><th class="n">Total net</th><th class="n">Per script</th></tr></thead><tbody>'+
+    st.map(function(x){ return '<tr><td><span class="pill inf">'+esc(x.board)+'</span></td><td class="n">'+x.courses+'</td><td class="n">'+x.bundles+'</td><td class="n">'+x.scripts+
+      '</td><td class="n">'+(x.unall?'<span class="pill warn">'+x.unall+'</span>':'0')+'</td><td class="n">'+x.ni+'</td><td class="n">'+x.ne+'</td><td class="n">'+inr(x.ti.net)+
+      '</td><td class="n">'+inr(x.te.net)+'</td><td class="n"><b>'+inr(x.net)+'</b></td><td class="n">'+(x.scripts?inr(x.net/x.scripts):'—')+'</td></tr>'; }).join('')+'</tbody>'
+    :'<tbody><tr><td class="empty"><span class="e">&#128202;</span>No bundles yet.</td></tr></tbody>';
+
+  var col={}, corder=[];
+  exts.forEach(function(x){
+    var nm=x.ex['College Name']||'(college not given)', k=lc(x.ex['College Code'])+'|'+lc(nm);
+    if(!col[k]){ col[k]={name:nm,city:x.ex['College City']||'',rate:x.c.taRate,n:0,days:0,ta:0}; corder.push(k); }
+    col[k].n++; col[k].days+=x.c.days; col[k].ta+=x.c.T;
+  });
+  document.getElementById('clCollege').innerHTML=corder.length?'<thead><tr><th>College</th><th>City</th><th class="n">Examiners</th><th class="n">Days</th><th class="n">TA rate</th><th class="n">TA total</th></tr></thead><tbody>'+
+    corder.map(function(k){ var o=col[k]; return '<tr><td><b>'+esc(o.name)+'</b></td><td>'+esc(o.city)+'</td><td class="n">'+o.n+'</td><td class="n">'+o.days+'</td><td class="n">'+
+      (o.rate?inr(o.rate):'<span class="pill warn">not set</span>')+'</td><td class="n"><b>'+inr(o.ta)+'</b></td></tr>'; }).join('')+'</tbody>'
+    :'<tbody><tr><td class="empty"><span class="e">&#127979;</span>No external examiners allotted yet.</td></tr></tbody>';
+
+  var ty=document.getElementById('clType').value, list=ty==='INT'?ints:(ty==='EXT'?exts:g);
+  document.getElementById('clExam').innerHTML=list.length?'<thead><tr><th>ID</th><th>Name</th><th>College / Dept.</th><th>Board</th><th class="n">Bundles</th><th class="n">Scripts</th><th class="n">Days</th>'+
+    '<th class="n">Valuation</th><th class="n">DA</th><th class="n">TA</th><th class="n">Sitting</th><th class="n">Gross</th><th class="n">TDS</th><th class="n">Net</th></tr></thead><tbody>'+
+    list.map(function(x){ var c=x.c; return '<tr><td><span class="pill '+(x.isExt?'warn':'inf')+'">'+esc(x.id)+'</span></td><td><b>'+esc(x.name)+'</b></td><td>'+
+      esc(x.isExt?(x.ex['College Name']||''):(x.ex['Department']||''))+'</td><td>'+esc(x.boards)+'</td><td class="n">'+c.bundles+'</td><td class="n">'+c.scripts+'</td><td class="n">'+c.days+
+      '</td><td class="n">'+inr(c.A)+'</td><td class="n">'+inr(c.B)+'</td><td class="n">'+inr(c.T)+'</td><td class="n">'+inr(c.C)+'</td><td class="n">'+inr(c.gross)+
+      '</td><td class="n">'+inr(c.tds)+'</td><td class="n"><b>'+inr(c.net)+'</b></td></tr>'; }).join('')+'</tbody>'
+    :'<tbody><tr><td class="empty"><span class="e">&#128101;</span>No allotted examiners for this selection.</td></tr></tbody>';
+}
+document.getElementById('clBoard').onchange=function(){ if(REPORT) renderClaims(); };
+document.getElementById('clType').onchange=function(){ if(REPORT) renderClaims(); };
+document.getElementById('clRefresh').onclick=function(){ REPORT=null; loadClaims(); };
 
 /* =============================== GO =============================== */
 boot();
